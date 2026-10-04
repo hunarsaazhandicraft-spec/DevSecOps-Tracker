@@ -26,7 +26,6 @@ android {
         // TODO fill these from README.md after first sync (do NOT commit real keys to a public repo)
         buildConfigField("String", "SUPABASE_URL", "\"https://fbcgdabbplexpynnzvdy.supabase.co\"")
         buildConfigField("String", "APP_EMAIL", "\"${localProps.getProperty("app.email", "")}\"")
-        buildConfigField("String", "APP_PASSWORD", "\"${localProps.getProperty("app.password", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"sb_publishable_1X0vrnoB0aFa1ZUfSXWJuw_tt_MXrLT\"")
     }
 

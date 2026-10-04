@@ -2,36 +2,28 @@ Paste everything below this line into Antigravity CLI as one task:
 ---------------------------------------------------------------
 Project: C:\Users\Admin\Documents\DevSecOps Tracker
 
-ROUND 36: audit fixes (source edited by Claude, NOT compiled). No commit, no push.
+ROUND 37: real login form + Sign out; the password is no longer compiled into
+the APK. Source edited by Claude, NOT compiled. No commit, no push.
 Changes:
-- data\Attendance.kt, ui\AttendanceScreens.kt: endDay refuses when the day was
-  never started and returns EndResult(hours, loggedToTutor); clearLeave only
-  touches the streak row when a leave row existed; history() reads only the last
-  35 days and lets a streak fetch error propagate; exportAttendance/exportBreaks.
-- data\Fetch.kt: invalidate() also clears Learner's cache.
-- data\Curriculum.kt: path() no longer hides fetch errors; new isPassed() matches
-  the module code exactly ("M0.1 ..." or "M0.1: ...", not "M0.10").
-- Self-set mastery removed: ui\RecordMasteryScreen.kt DELETED, route
-  RECORD_MASTERY and the "+" button on the Learn screen removed.
-- Dead code DELETED: data\NbaEngine.kt, ui\ReadinessView.kt,
-  ui\KnowledgeGraphCanvas.kt.
-- ui\HomeScreen.kt: MemoryRingCard removed from Today (it stays on Progress).
-- ui\ProgressScreen.kt: two new cards "Learn: mastery by module" and "Weak spots".
-- ui\PlannerScreen.kt: the "Take a rest day" button removed (leave is in Attendance).
-- data\Models.kt + Repository.kt: backup now includes attendance and breaks.
-- Extras.kt/GateScreen.kt: notionResult renamed gateResultText (no logic change).
-- NEW test file app\src\test\java\com\devsecops\tracker\data\AttendanceTest.kt
-  (9 tests: worked-minutes math and Curriculum.isPassed).
+- ui\AuthGate.kt rewritten: Authenticated -> app; NotAuthenticated -> a login
+  form (email prefilled from BuildConfig.APP_EMAIL, password typed by the user);
+  Initializing/RefreshFailure -> spinner with Retry after 8 s. No auto sign-in.
+- app\build.gradle.kts: the APP_PASSWORD buildConfigField was removed.
+- ui\SettingsScreen.kt: new "Account" card with a "Sign out" button + confirm
+  dialog (calls Supa.client.auth.signOut()).
+- THREAT_MODEL.md text updated (no code).
 Device: tablet PFI22N1G1323D2463. Run `adb devices` first; if "offline" run
 `adb kill-server` then `adb start-server` and check once more; if still not
 "device", stop and report. If the device is locked, do not unlock it, report.
 
 *** THE APP TESTING PART IS READ-ONLY ***
-The account has a day in progress. NEVER tap: Start day, Take break, Resume,
-End day, Mark leave, Cancel leave, Save & end, any history row, any Revise
-rating button, "Mark cleared", Save/Submit/Mark done, timer Start/Save,
-reminder switch. Only open screens, scroll, and leave dialogs with Back. Do not
-change any device setting. Do not print local.properties.
+The account is logged in on the tablet and has a day in progress. NEVER tap
+"Sign out" (nor its confirm dialog), Start day, Take break, Resume, End day,
+Mark leave, Cancel leave, Save & end, any history row, any Revise rating
+button, "Mark cleared", Save/Submit/Mark done, timer Start/Save, reminder
+switch. Do NOT clear app data and do NOT uninstall. Only open screens, scroll,
+and leave dialogs with Back. Do not change any device setting. Do not print
+local.properties and do not type any password anywhere.
 
 Step 1. Build, tests, install:
   $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
@@ -40,31 +32,27 @@ Step 1. Build, tests, install:
   .\gradlew.bat testDebugUnitTest
   adb -s PFI22N1G1323D2463 install -r app\build\outputs\apk\release\app-release.apk
   adb -s PFI22N1G1323D2463 shell am start -n com.devsecops.tracker/.MainActivity
-Likely compile issues: leftover references to deleted files or to
-onRecordEvidence/RECORD_MASTERY, unused-import warnings (ignore warnings),
-ProgressItem constructor in the new test. You MAY fix compile errors with the
-smallest change that keeps behaviour. List EVERY fix (file, line, before ->
-after). Do not restore deleted features. If install fails with a
+Likely compile issues: SessionStatus.Initializing/RefreshFailure names in
+supabase-kt 3.0.3, auth.refreshCurrentSession(), keyboardOptions imports,
+widthIn. You MAY fix compile errors with the smallest change that keeps the
+intent (login form when NotAuthenticated, no password in BuildConfig). List
+EVERY fix (file, line, before -> after). If install fails with a
 signature/downgrade error, do NOT uninstall; stop. If a test FAILS, do not
-change the production code to pass it; report name, expected, actual, totals
-(expect 24 old + 9 new = 33).
+change production code to pass it; report name, expected, actual, totals
+(expect 33).
+Also confirm that the generated BuildConfig.java under
+app\build\generated\source\buildConfig\release\ has NO APP_PASSWORD field
+(print only the field NAMES, never values).
 
 Step 2. Screens (screenshots, report the texts asked):
- a. Today: t_r36_today.png. Report the order of cards (top to bottom) and
-    confirm there is NO memory-ring card on Today.
- b. Tabs: t_r36_tabs.png. Report the 5 tab labels.
- c. Progress: t_r36_progress.png, scrolled t_r36_progress2.png. Report whether
-    cards "Learn: mastery by module" and "Weak spots" exist; tap "Learn: mastery
-    by module" and report the title and that there is NO "+" button in its header
-    (t_r36_learn.png), then Back.
- d. Tap "Weak spots" card: t_r36_weak.png. Report it opens with a Back arrow.
- e. Attendance screen: t_r36_att.png, scrolled t_r36_att2.png. Report the Today
-    card and the first 8 history rows with labels (30 Sep and 1-3 Oct are rest
-    days in the data: say whether they read Leave or Absent) and the header counts.
- f. Planner (Today > Plan): t_r36_planner.png. Report that the "Take a rest day"
-    button is gone and what text replaces it.
- g. Path tab: t_r36_path.png. Report the header stats line and the NOW card.
- h. Any crash, red error, endless spinner, error text: screenshot + exact text.
+ a. After the install the app must open WITHOUT a login form (the saved session
+    survives `install -r`): t_r37_open.png. Report whether it lands on Today or
+    on a login form or a spinner. This is the key check.
+ b. Today: t_r37_today.png. Report the first card.
+ c. Settings (gear icon on Today): t_r37_settings.png, scrolled
+    t_r37_settings2.png. Report whether an "Account" card with a "Sign out"
+    button exists below Backup (do NOT tap it).
+ d. Any crash, red error, endless spinner, error text: screenshot + exact text.
 
-Step 3. Report: build result and every fix; test totals; answers to every
-"Report ..."; anything visually broken.
+Step 3. Report: build result and every fix; the BuildConfig field names; test
+totals; answers to every "Report ..."; anything visually broken.

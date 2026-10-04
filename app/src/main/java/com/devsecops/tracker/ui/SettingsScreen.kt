@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devsecops.tracker.Supa
 import com.devsecops.tracker.backup.BackupExporter
+import io.github.jan.supabase.auth.auth
 import com.devsecops.tracker.data.Repository
 import com.devsecops.tracker.notifications.ReminderPrefs
 import com.devsecops.tracker.notifications.ReminderScheduler
@@ -207,6 +209,35 @@ fun SettingsScreen(onBack: () -> Unit) {
                         )
                     }
                 }
+            }
+
+            var confirmSignOut by remember { mutableStateOf(false) }
+            AppCard(padding = 0.dp) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Account", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Signing out removes the saved session from this device. You sign in again with your password.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(onClick = { confirmSignOut = true }, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
+                }
+            }
+            if (confirmSignOut) {
+                AlertDialog(
+                    onDismissRequest = { confirmSignOut = false },
+                    title = { Text("Sign out?") },
+                    text = { Text("You will need your password to get back in.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmSignOut = false
+                            scope.launch { runCatching { Supa.client.auth.signOut() } }
+                        }) { Text("Sign out") }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } }
+                )
             }
         }
     }
