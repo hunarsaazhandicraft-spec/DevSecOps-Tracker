@@ -270,7 +270,6 @@ private fun HomeContent(
         }
 
         // 5. Memory ring
-        item { MemoryRingCard(onOpenFading = { onOpen("fading") }, modifier = Modifier.appear(4)) }
 
         // 6. Collapsible plan
         item {

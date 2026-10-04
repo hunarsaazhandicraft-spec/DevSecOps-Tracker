@@ -53,7 +53,6 @@ private object Routes {
     const val STUDY = "study"
     const val WEAK_SPOTS = "weak_spots"
     const val ADD_WEAK_SPOT = "add_weak_spot"
-    const val RECORD_MASTERY = "record_mastery"
     const val ADD_CARD = "add_card"
     const val SETTINGS = "settings"
     const val MODULE = "module/{id}"
@@ -218,7 +217,6 @@ fun TrackerNavHost() {
             composable(Routes.MASTERY) {
                 MasteryScreen(
                     onBack = { navController.popBackStack() },
-                    onRecordEvidence = { navController.navigate(Routes.RECORD_MASTERY) },
                     onOpenModule = { navController.navigate("module/$it") },
                     showBackButton = true
                 )
@@ -294,11 +292,6 @@ fun TrackerNavHost() {
             composable(Routes.ADD_WEAK_SPOT) {
                 FormFrame("Open a weak spot", { navController.popBackStack() }) {
                     AddWeakSpotScreen(onSaved = { navController.popBackStack() })
-                }
-            }
-            composable(Routes.RECORD_MASTERY) {
-                FormFrame("Record evidence", { navController.popBackStack() }) {
-                    RecordMasteryScreen(onSaved = { navController.popBackStack() })
                 }
             }
             composable(Routes.ADD_CARD) {

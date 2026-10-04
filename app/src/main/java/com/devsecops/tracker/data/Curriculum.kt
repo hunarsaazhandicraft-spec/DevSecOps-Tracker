@@ -147,20 +147,24 @@ object Curriculum {
                 limit(1)
             }.decodeList<LogHead>().firstOrNull()
 
+    // True when a non-superseded progress item for this module code
+    // ("M0.1 ...", "M0.1: ...") is Mastered with a passing gate result.
+    fun isPassed(progress: List<ProgressItem>, code: String?): Boolean {
+        if (code.isNullOrBlank()) return false
+        val rx = Regex("^" + Regex.escape(code) + "(?![0-9A-Za-z.])")
+        return progress.any {
+            !it.superseded && rx.containsMatchIn(it.item) &&
+                it.status.equals("Mastered", true) &&
+                it.gate_result?.trim()?.lowercase()?.startsWith("pass") == true
+        }
+    }
+
     // A chat is done when the tutor recorded its module as Mastered with a
     // passed gate (the protocol's NEXT_CHAT rule), or the plan itself says ✅.
     suspend fun path(): List<PathChat> {
         val chats = chats()
-        val progress = Fetch.orDefault(emptyList()) { Fetch.progressItems() }
-        fun passed(code: String?): Boolean {
-            if (code.isNullOrBlank()) return false
-            return progress.any {
-                !it.superseded &&
-                    it.item.startsWith("$code ") &&
-                    it.status.equals("Mastered", true) &&
-                    it.gate_result?.trim()?.lowercase()?.startsWith("pass") == true
-            }
-        }
+        val progress = Fetch.progressItems()   // errors propagate: never show "no progress" on a failed fetch
+        fun passed(code: String?): Boolean = isPassed(progress, code)
         val done = chats.map { passed(it.module_code) || it.prerequisite?.trimStart()?.startsWith("✅") == true }
         val current = done.indexOfFirst { !it }
         return chats.mapIndexed { i, c ->

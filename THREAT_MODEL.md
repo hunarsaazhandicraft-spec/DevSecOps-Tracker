@@ -1,6 +1,6 @@
 # Threat model - DevSecOps Tracker (personal Android app)
 
-Scope: one Android app (Kotlin/Compose) talking to one Supabase project (Postgres + Auth + PostgREST). Single user. Personal use only, never published. Notion is the source of truth for progress.
+Scope: one Android app (Kotlin/Compose) talking to one Supabase project (Postgres + Auth + PostgREST). Single user. Personal use only, never published. Supabase is the single source of truth for progress; the tutor chat writes to it live (Notion is an archive).
 
 ## Assets
 - Learning records: mastery evidence, weak spots, reviews, notes, glossary, projects.
@@ -17,7 +17,7 @@ Device (app + on-device session) -> HTTPS -> Supabase API -> Postgres (RLS).
 | Tampering | Edit or delete mastery evidence | `mastery_records`: app role holds only SELECT + INSERT grants (UPDATE/DELETE revoked 2026-09-29) and a BEFORE UPDATE/DELETE trigger blocks edits, including FK actions; RLS has no update/delete policy | Owner/service role can bypass only by setting `app.allow_mastery_edit = 'on'` in a transaction |
 | Repudiation | "I never recorded that" | Evidence rows are timestamped and immutable; reviews carry timestamps | No external audit log |
 | Information disclosure | Leaked key or password in Git | Credentials moved out of source to git-ignored `local.properties`; gitleaks + Trivy secret scan in CI; `allowBackup=false` | Anon key is public by design (RLS protects data); password sits in the APK |
-| Denial of service | Supabase pause or outage | App shows load errors with retry; data mirrors Notion | No offline cache yet |
+| Denial of service | Supabase pause or outage | App shows load errors with retry; data lives in Supabase | No offline cache yet |
 | Elevation of privilege | Using the anon key to read other rows | RLS owner-only on all tables; `mastery_records` insert-only | Leaked-password protection needs the Pro plan (off); public signups are disabled (2026-09-29); `anon` role has no table privileges |
 
 ## Known gaps (tracked)
@@ -38,4 +38,4 @@ Still open (honest list):
 3. GitHub Actions are pinned by tag, not commit SHA.
 4. The project is not a git repo locally yet; run gitleaks on the tree before the first commit.
 5. Session token and widget cache are plain SharedPreferences (readable on a rooted device).
-6. Notion is the source of truth, but Notion -> Supabase is a one-time import until the sync task exists; app writes are not pushed back to Notion.
+6. Supabase is the single source of truth. Notion is an archive and is no longer synced.

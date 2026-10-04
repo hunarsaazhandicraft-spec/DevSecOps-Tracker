@@ -131,6 +131,7 @@ object Fetch {
     fun invalidate() {
         generation++
         cache.clear()
+        Learner.invalidate()   // one call clears every cache layer
     }
 
     private fun fresh(key: String): Entry? {

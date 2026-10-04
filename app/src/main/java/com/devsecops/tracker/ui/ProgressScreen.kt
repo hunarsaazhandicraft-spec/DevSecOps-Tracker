@@ -181,13 +181,21 @@ private fun LibraryContent(counts: LibraryCounts?, onOpen: (String) -> Unit) {
             if (row.size == 1) Spacer(Modifier.weight(1f))
         }
     }
+    AppCard(onClick = { onOpen("mastery") }, padding = 16.dp) {
+        Text("Learn: mastery by module", style = MaterialTheme.typography.titleSmall)
+        Text("Evidence levels L1-L5 the tutor recorded", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    AppCard(onClick = { onOpen("weak_spots") }, padding = 16.dp) {
+        Text("Weak spots", style = MaterialTheme.typography.titleSmall)
+        Text("Open gaps the tutor found, and add your own", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     AppCard(onClick = { onOpen("focus") }, padding = 16.dp) {
         Text("Focus timer", style = MaterialTheme.typography.titleSmall)
         Text("Pomodoro that saves a study session", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     AppCard(onClick = { onOpen("planner") }, padding = 16.dp) {
         Text("Plan my day", style = MaterialTheme.typography.titleSmall)
-        Text("Pick the time you have, get an ordered plan and a rest-day option", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Pick the time you have and get an ordered plan", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

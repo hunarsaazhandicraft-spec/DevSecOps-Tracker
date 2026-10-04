@@ -117,9 +117,9 @@ data class GateView(
     val checks: List<GateCheck>,
     val prereqs: List<Pair<Module, String?>>,
     // progress_items (tutor-written in Supabase) is the authoritative gate result. official =
-    // status Mastered AND gate_result Pass. notionResult is a short text for
+    // status Mastered AND gate_result Pass. gateResultText is a short text for
     // the UI (null = no progress row for this module).
-    val notionResult: String? = null,
+    val gateResultText: String? = null,
     val official: Boolean = false,
     // "Passed (tutor-graded)" | "Ready" | "Not ready"
     val readinessText: String = ""
@@ -322,7 +322,7 @@ object Extras {
         }
         val official = officialItem != null
         val shown = officialItem ?: moduleItems.firstOrNull { !it.status.isNullOrBlank() }
-        val notionResult: String? = when {
+        val gateResultText: String? = when {
             official -> "Mastered \u00B7 Gate passed (tutor-graded)"
             shown != null ->
                 (shown.status ?: "In progress") + " \u00B7 Gate: " +
@@ -334,7 +334,7 @@ object Extras {
             checks.all { it.ok } -> "Ready"
             else -> "Not ready"
         }
-        GateView(module, statuses[moduleId], rows, checks, prereqs, notionResult, official, readinessText)
+        GateView(module, statuses[moduleId], rows, checks, prereqs, gateResultText, official, readinessText)
     }
 
     // ---- Insights / coach / decay ----------------------------------------

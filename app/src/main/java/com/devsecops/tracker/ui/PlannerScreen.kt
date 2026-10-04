@@ -109,19 +109,10 @@ fun PlannerScreen(onBack: () -> Unit) {
         HorizontalDivider()
         Text("Not today?", style = MaterialTheme.typography.labelLarge)
         Text(
-            "One planned rest day per week keeps your streak alive.",
+            "Mark leave from Attendance (Today card). Leave days keep your streak alive.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = {
-                scope.launch {
-                    msg = catching { Extras.takeRestDay() }
-                        .getOrElse { it.message ?: "Failed" } ?: "Rest day saved. Your streak is safe."
-                }
-            }
-        ) { Text("Take a rest day") }
         msg?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
     }
 }

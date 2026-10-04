@@ -215,7 +215,9 @@ data class BackupBundle(
     val commands: List<CommandItem> = emptyList(),
     val bandit_levels: List<BanditLevel> = emptyList(),
     val projects_tracker: List<ProjectItem> = emptyList(),
-    val interview_questions: List<InterviewQ> = emptyList()
+    val interview_questions: List<InterviewQ> = emptyList(),
+    val attendance: List<AttendanceRow> = emptyList(),
+    val breaks: List<BreakRow> = emptyList()
 )
 
 @Serializable

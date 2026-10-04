@@ -2,6 +2,7 @@ package com.devsecops.tracker.data
 
 import com.devsecops.tracker.Supa
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
@@ -47,6 +48,7 @@ data class BreakRow(
 @Serializable private data class AttEndUpNoNote(val ended_at: String, val confidence: Int)
 @Serializable private data class BreakIns(val day: String)
 @Serializable private data class BreakEndUp(val ended_at: String)
+@Serializable private data class LogIdRow(val study_day: Int)
 @Serializable private data class LogHoursUp(val actual_hours: Double, val confidence: Int)
 
 enum class DayMark { PRESENT, LEAVE, ABSENT, TODAY_OPEN, UNTRACKED }
@@ -137,11 +139,16 @@ object Attendance {
         Fetch.invalidate()
     }
 
+    data class EndResult(val hours: Double, val loggedToTutor: Boolean)
+
     // Closes any open break, stores end + confidence, and copies hours and
     // confidence into today's tutor daily_logs row when one exists.
-    suspend fun endDay(confidence: Int, note: String): Double {
+    // Throws if the day was never started; reports (never hides) whether the
+    // daily_logs copy happened.
+    suspend fun endDay(confidence: Int, note: String): EndResult {
         val day = today()
         val cur = loadDay(day)
+        if (cur.row?.started_at == null) error("Day was not started - nothing to end.")
         val now = nowIso()
         cur.openBreak?.let { b ->
             Supa.client.from("breaks").update(BreakEndUp(now)) { filter { eq("id", b.id) } }
@@ -154,13 +161,17 @@ object Attendance {
         val closed = cur.breaks.map { if (it.ended_at == null) it.copy(ended_at = now) else it }
         val nowMs = Clock.System.now().toEpochMilliseconds()
         val hours = Math.round(workedMinutes(cur.row, closed, nowMs) / 60.0 * 100) / 100.0
-        runCatching {
-            Supa.client.from("daily_logs").update(LogHoursUp(hours, confidence)) {
+        val logged = try {
+            val rows = Supa.client.from("daily_logs").select(Columns.list("study_day")) {
                 filter { eq("log_date", day) }
+            }.decodeList<LogIdRow>()
+            if (rows.isEmpty()) false else {
+                Supa.client.from("daily_logs").update(LogHoursUp(hours, confidence)) { filter { eq("log_date", day) } }
+                true
             }
-        }
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { false }
         Fetch.invalidate()
-        return hours
+        return EndResult(hours, logged)
     }
 
     suspend fun markLeave(day: String, reason: String) {
@@ -173,6 +184,9 @@ object Attendance {
     }
 
     suspend fun clearLeave(day: String) {
+        val wasLeave = Supa.client.from("attendance").select { filter { eq("day", day); eq("status", "leave") } }
+            .decodeList<AttendanceRow>().isNotEmpty()
+        if (!wasLeave) return
         Supa.client.from("attendance").delete { filter { eq("day", day); eq("status", "leave") } }
         Supa.client.from("streak_days").delete { filter { eq("day", day); eq("rest", true) } }
         Fetch.invalidate()
@@ -182,10 +196,14 @@ object Attendance {
 
     // Newest first. Days before the first tracked day are UNTRACKED, not absent.
     suspend fun history(days: Int = 35): List<DayRow> {
-        val att = Supa.client.from("attendance").select { order("day", Order.DESCENDING) }
-            .decodeList<AttendanceRow>()
-        val streak = Fetch.orDefault(emptyList()) { Fetch.streakDays() }
-        val brk = Supa.client.from("breaks").select { }.decodeList<BreakRow>().groupBy { it.day }
+        val from = localTodayDate().minus(DatePeriod(days = days)).toString()
+        val att = Supa.client.from("attendance").select {
+            filter { gte("day", from) }
+            order("day", Order.DESCENDING)
+        }.decodeList<AttendanceRow>()
+        val streak = Fetch.streakDays()   // errors propagate: never show every day as absent
+        val brk = Supa.client.from("breaks").select { filter { gte("day", from) } }
+            .decodeList<BreakRow>().groupBy { it.day }
         val attBy = att.associateBy { it.day }
         val studied = streak.filter { it.studied }.map { it.day }.toSet()
         val rest = streak.filter { it.rest }.map { it.day }.toSet()
@@ -207,5 +225,12 @@ object Attendance {
         }
     }
 
-    fun parseDate(s: String): LocalDate = LocalDate.parse(s)
+    // Full tables for the JSON backup (paged, stable order).
+    suspend fun exportAttendance(): List<AttendanceRow> = Fetch.pageAll { from, to ->
+        Supa.client.from("attendance").select { order("day", Order.ASCENDING); range(from, to) }.decodeList<AttendanceRow>()
+    }
+
+    suspend fun exportBreaks(): List<BreakRow> = Fetch.pageAll { from, to ->
+        Supa.client.from("breaks").select { order("id", Order.ASCENDING); range(from, to) }.decodeList<BreakRow>()
+    }
 }

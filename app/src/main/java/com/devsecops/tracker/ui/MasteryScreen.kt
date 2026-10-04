@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun MasteryScreen(
     onBack: () -> Unit,
-    onRecordEvidence: () -> Unit,
     onOpenModule: (Int) -> Unit,
     showBackButton: Boolean = true
 ) {
@@ -70,12 +69,7 @@ fun MasteryScreen(
                 title = "Learn",
                 subtitle = if (modules.isEmpty()) null
                 else "${modules.size} modules · ${topics.count { it.id in assessedTopics }} of ${topics.size} topics have evidence",
-                onBack = if (showBackButton) onBack else null,
-                actions = {
-                    FilledTonalIconButton(onClick = onRecordEvidence) {
-                        Icon(Icons.Filled.Add, contentDescription = "Record evidence")
-                    }
-                }
+                onBack = if (showBackButton) onBack else null
             )
         }
     ) { padding ->

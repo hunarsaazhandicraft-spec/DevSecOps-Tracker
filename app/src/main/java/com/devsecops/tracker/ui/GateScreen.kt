@@ -29,7 +29,7 @@ fun GateContent(v: GateView) {
                 Pill(v.status ?: "Not started", if (v.status == "Mastered") cs.primary else cs.onSurfaceVariant)
             }
             Spacer(Modifier.height(4.dp))
-            v.notionResult?.let {
+            v.gateResultText?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge, color = if (v.official) cs.primary else cs.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
             }

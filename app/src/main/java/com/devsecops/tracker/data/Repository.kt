@@ -442,7 +442,7 @@ object Repository {
         }
 
     // module id -> status ("Mastered", "In progress", ...) from progress_items,
-    // ignoring rows the Notion import marked superseded.
+    // ignoring rows the old import marked superseded.
     suspend fun listModuleStatuses(): Map<Int, String> =
         fetchProgressItems()
             .filter { !it.superseded && it.module_id != null && !it.status.isNullOrBlank() }
@@ -571,6 +571,8 @@ object Repository {
         val banditJob = async { Fetch.banditLevels() }
         val projectsJob = async { Fetch.projects() }
         val interviewJob = async { Fetch.interviewQuestions() }
+        val attendanceJob = async { Attendance.exportAttendance() }
+        val breaksJob = async { Attendance.exportBreaks() }
 
         backupJson.encodeToString(
             BackupBundle(
@@ -589,7 +591,9 @@ object Repository {
                 commands = commandsJob.await(),
                 bandit_levels = banditJob.await(),
                 projects_tracker = projectsJob.await(),
-                interview_questions = interviewJob.await()
+                interview_questions = interviewJob.await(),
+                attendance = attendanceJob.await(),
+                breaks = breaksJob.await()
             )
         )
     }

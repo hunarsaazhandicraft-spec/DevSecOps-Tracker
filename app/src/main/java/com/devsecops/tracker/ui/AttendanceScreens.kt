@@ -103,8 +103,10 @@ fun AttendanceScreen(onBack: () -> Unit) {
     if (showEnd) EndDayDialog(onDismiss = { showEnd = false }) { c, n ->
         showEnd = false
         act {
-            val h = Attendance.endDay(c, n)
-            msg = "Day ended: ${"%.2f".format(h)} h, confidence $c/5"
+            val r = Attendance.endDay(c, n)
+            msg = "Day ended: ${"%.2f".format(r.hours)} h, confidence $c/5" +
+                if (r.loggedToTutor) " (also saved to today's daily log)"
+                else " - NOT copied to the tutor daily log (no log row for today yet, or the write failed)"
         }
     }
     leaveDay?.let { d ->
