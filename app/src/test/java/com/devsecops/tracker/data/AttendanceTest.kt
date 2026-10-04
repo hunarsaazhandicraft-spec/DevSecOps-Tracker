@@ -59,4 +59,16 @@ class AttendanceTest {
         assertFalse(Curriculum.isPassed(listOf(item("M0.1 X", gate = null)), "M0.1"))
         assertFalse(Curriculum.isPassed(listOf(item("M0.1 X", sup = true)), "M0.1"))
     }
+
+    @Test fun gateStatus_passedNotStartedAndPending() {
+        val passed = listOf(ProgressItem(id = 1, item = "M0.2 Session 6", status = "Mastered", mastery_level = "L4", gate_result = "Pass"))
+        val s = Curriculum.moduleGateStatus(passed, "M0.2")
+        assertTrue(s.passed); assertEquals("Passed", s.label); assertEquals("L4", s.bestLevel)
+
+        assertEquals("Not started", Curriculum.moduleGateStatus(emptyList(), "M0.3").label)
+
+        val pending = listOf(ProgressItem(id = 2, item = "M0.3 TLS", status = "Mastered", mastery_level = "L3"))
+        assertEquals("Mastered, gate pending", Curriculum.moduleGateStatus(pending, "M0.3").label)
+        assertEquals("Tutor records this", Curriculum.moduleGateStatus(pending, null).label)
+    }
 }

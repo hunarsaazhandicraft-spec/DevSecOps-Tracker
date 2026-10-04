@@ -94,6 +94,39 @@ data class LogHead(
     val module_id: Int? = null
 )
 
+@Serializable
+data class GateRow(
+    val id: String,
+    val kind: String = "other",
+    val name: String,
+    val phase_id: Int? = null,
+    val module_code: String? = null,
+    val description: String? = null
+)
+
+@Serializable
+data class GateCheckRow(
+    val id: Long,
+    val gate_id: String,
+    val check_no: Int = 0,
+    val check_text: String,
+    val requires_doing: Boolean = false,
+    val min_level: String? = null
+)
+
+@Serializable
+data class LabRow(
+    val id: String,
+    val name: String,
+    val module_code: String? = null,
+    val environment: String? = null,
+    val scope_note: String? = null,
+    val safety_notes: String? = null
+)
+
+// Status of a module gate, derived from the tutor-written progress_items.
+data class GateStatus(val label: String, val passed: Boolean, val bestLevel: String?)
+
 @Serializable private data class FeedLog(val created_at: String, val study_day: Int, val status: String? = null)
 @Serializable private data class FeedProgress(val created_at: String, val item: String, val status: String? = null, val mastery_level: String? = null)
 @Serializable private data class FeedWeak(val opened_at: String, val title: String? = null, val reason: String = "", val cleared_at: String? = null)
@@ -117,6 +150,36 @@ enum class ChatState { DONE, CURRENT, UPCOMING, LOCKED }
 data class PathChat(val chat: ChatPlanRow, val state: ChatState)
 
 object Curriculum {
+
+    suspend fun gates(): List<GateRow> =
+        Supa.client.from("gates").select { order("id", Order.ASCENDING) }.decodeList()
+
+    suspend fun gateChecks(): List<GateCheckRow> =
+        Supa.client.from("gate_checks").select {
+            order("gate_id", Order.ASCENDING)
+            order("check_no", Order.ASCENDING)
+        }.decodeList()
+
+    suspend fun labs(): List<LabRow> =
+        Supa.client.from("labs").select { order("id", Order.ASCENDING) }.decodeList()
+
+    private fun levelNum(l: String?): Int = l?.trim()?.removePrefix("L")?.toIntOrNull() ?: 0
+
+    // Module gate status from progress_items (same matching as the Path screen).
+    fun moduleGateStatus(progress: List<ProgressItem>, code: String?): GateStatus {
+        if (code.isNullOrBlank()) return GateStatus("Tutor records this", false, null)
+        val rx = Regex("^" + Regex.escape(code) + "(?![0-9A-Za-z.])")
+        val rows = progress.filter { !it.superseded && rx.containsMatchIn(it.item) }
+        val best = rows.mapNotNull { it.mastery_level }.maxByOrNull { levelNum(it) }
+        val passed = isPassed(progress, code)
+        val label = when {
+            passed -> "Passed"
+            rows.isEmpty() -> "Not started"
+            rows.any { it.status.equals("Mastered", true) } -> "Mastered, gate pending"
+            else -> rows.firstOrNull { !it.status.isNullOrBlank() }?.status ?: "In progress"
+        }
+        return GateStatus(label, passed, best)
+    }
 
     suspend fun chats(): List<ChatPlanRow> =
         Supa.client.from("chat_plan").select { order("chat_no", Order.ASCENDING) }.decodeList()

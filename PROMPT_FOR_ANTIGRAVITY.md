@@ -2,27 +2,29 @@ Paste everything below this line into Antigravity CLI as one task:
 ---------------------------------------------------------------
 Project: C:\Users\Admin\Documents\DevSecOps Tracker
 
-ROUND 37: real login form + Sign out; the password is no longer compiled into
-the APK. Source edited by Claude, NOT compiled. No commit, no push.
+ROUND 38: read-only Gates and Labs screens (data from Supabase tables gates,
+gate_checks, labs). Source edited by Claude, NOT compiled. No commit, no push.
 Changes:
-- ui\AuthGate.kt rewritten: Authenticated -> app; NotAuthenticated -> a login
-  form (email prefilled from BuildConfig.APP_EMAIL, password typed by the user);
-  Initializing/RefreshFailure -> spinner with Retry after 8 s. No auto sign-in.
-- app\build.gradle.kts: the APP_PASSWORD buildConfigField was removed.
-- ui\SettingsScreen.kt: new "Account" card with a "Sign out" button + confirm
-  dialog (calls Supa.client.auth.signOut()).
-- THREAT_MODEL.md text updated (no code).
+- data\Curriculum.kt: new models GateRow, GateCheckRow, LabRow, GateStatus;
+  Curriculum.gates(), gateChecks(), labs(), moduleGateStatus(progress, code).
+- ui\GatesLabsScreens.kt (new): GatesLabsScreen(onBack) with tabs Gates / Labs.
+  Gates grouped by kind (module, phase, project, critical_skill, capstone),
+  expandable cards showing the checks; module gates show a status pill.
+  Labs: "Golden rule" card + expandable lab cards.
+- ui\Navigation.kt: Routes.GATES + composable.
+- ui\ProgressScreen.kt: new card "Gates and labs" (opens the screen).
+- app\src\test\...\AttendanceTest.kt: new test gateStatus_passedNotStartedAndPending.
 Device: tablet PFI22N1G1323D2463. Run `adb devices` first; if "offline" run
 `adb kill-server` then `adb start-server` and check once more; if still not
 "device", stop and report. If the device is locked, do not unlock it, report.
 
 *** THE APP TESTING PART IS READ-ONLY ***
-The account is logged in on the tablet and has a day in progress. NEVER tap
-"Sign out" (nor its confirm dialog), Start day, Take break, Resume, End day,
-Mark leave, Cancel leave, Save & end, any history row, any Revise rating
-button, "Mark cleared", Save/Submit/Mark done, timer Start/Save, reminder
-switch. Do NOT clear app data and do NOT uninstall. Only open screens, scroll,
-and leave dialogs with Back. Do not change any device setting. Do not print
+The account is logged in and may have a day in progress. NEVER tap "Sign out",
+Start day, Take break, Resume, End day, Mark leave, Cancel leave, Save & end,
+any attendance history row, any Revise rating button, "Mark cleared",
+Save/Submit/Mark done, timer Start/Save, reminder switch. Do NOT clear app data
+and do NOT uninstall. Only open screens, scroll, expand/collapse cards, tap
+tabs, and use Back. Do not change any device setting. Do not print
 local.properties and do not type any password anywhere.
 
 Step 1. Build, tests, install:
@@ -32,27 +34,33 @@ Step 1. Build, tests, install:
   .\gradlew.bat testDebugUnitTest
   adb -s PFI22N1G1323D2463 install -r app\build\outputs\apk\release\app-release.apk
   adb -s PFI22N1G1323D2463 shell am start -n com.devsecops.tracker/.MainActivity
-Likely compile issues: SessionStatus.Initializing/RefreshFailure names in
-supabase-kt 3.0.3, auth.refreshCurrentSession(), keyboardOptions imports,
-widthIn. You MAY fix compile errors with the smallest change that keeps the
-intent (login form when NotAuthenticated, no password in BuildConfig). List
-EVERY fix (file, line, before -> after). If install fails with a
-signature/downgrade error, do NOT uninstall; stop. If a test FAILS, do not
-change production code to pass it; report name, expected, actual, totals
-(expect 33).
-Also confirm that the generated BuildConfig.java under
-app\build\generated\source\buildConfig\release\ has NO APP_PASSWORD field
-(print only the field NAMES, never values).
+Likely compile issues: missing imports in GatesLabsScreens.kt (Sp, AppCard,
+Pill, SegTabs, GroupHeader, ErrorBlock, SkeletonList, OnResume, AppTitleBar
+live in the ui package; check their exact signatures), @Serializable models
+in Curriculum.kt, Supabase column names (use the data classes as written),
+GateStatus naming clash. You MAY fix compile errors with the smallest change
+that keeps the intent. List EVERY fix (file, line, before -> after). If
+install fails with a signature/downgrade error, do NOT uninstall; stop. If a
+test FAILS, do not change production code to pass it; report name, expected,
+actual, totals (expect 34).
 
 Step 2. Screens (screenshots, report the texts asked):
- a. After the install the app must open WITHOUT a login form (the saved session
-    survives `install -r`): t_r37_open.png. Report whether it lands on Today or
-    on a login form or a spinner. This is the key check.
- b. Today: t_r37_today.png. Report the first card.
- c. Settings (gear icon on Today): t_r37_settings.png, scrolled
-    t_r37_settings2.png. Report whether an "Account" card with a "Sign out"
-    button exists below Backup (do NOT tap it).
- d. Any crash, red error, endless spinner, error text: screenshot + exact text.
+ a. App opens without a login form (session survives install -r): t_r38_open.png.
+ b. Progress tab: scroll to the card "Gates and labs": t_r38_progress.png.
+    Report its subtitle text.
+ c. Tap it. Gates tab: t_r38_gates.png. Report the group headers in order and
+    how many cards each has (expect module 15ish, phase 8, project 2,
+    critical skill, capstone 1; report the real numbers).
+ d. Module gates: report the status pill text of M0.1, M0.2, M0.3 (and any
+    other module gate that is not "Not started"). Expected: whatever Supabase
+    progress says; flag anything that looks wrong.
+ e. Expand one module gate card: t_r38_gate_open.png. Report the check lines
+    (check_no, text), whether "hands-on" and "min Lx" pills show.
+ f. Labs tab: t_r38_labs.png. Report the count of lab cards (expect 22), the
+    "Golden rule" card text, and expand one lab: t_r38_lab_open.png (report
+    environment/scope/safety lines).
+ g. Back returns to Progress. Rotate nothing. Any crash, red error, endless
+    spinner, empty tab, clipped text: screenshot + exact text.
 
-Step 3. Report: build result and every fix; the BuildConfig field names; test
-totals; answers to every "Report ..."; anything visually broken.
+Step 3. Report: build result and every fix; test totals; answers to every
+"Report ..."; anything visually broken.
