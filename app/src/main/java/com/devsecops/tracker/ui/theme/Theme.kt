@@ -20,41 +20,46 @@ import androidx.compose.ui.unit.sp
 import com.devsecops.tracker.R
 
 // Three accents doing real work, not decoration:
-//   primary   — emerald, "good / done / on track"  (mastery L4-L5, studied days)
-//   secondary — sky, "action available"            (revise, links)
-//   tertiary  — amber, "partial / in progress"     (mastery L3)
-//   error     — red, "needs attention"             (mastery L1-L2, weak spots)
+//   primary   — mint, "passed / on track"   (stage done, mastery L4-L5)
+//   secondary — blue, "info / link"
+//   tertiary  — amber, "pending / due"      (revisit due, partial)
+//   error     — coral, "failing / gap"      (weak spots, redo)
 // The same scale is used everywhere so a colour always means the same thing.
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF4DFFA6),          // neon mint: done / on track
-    onPrimary = Color(0xFF00210F),
-    primaryContainer = Color(0xFF12382A),
-    onPrimaryContainer = Color(0xFFB8FFDD),
+    primary = Color(0xFF5CF0A8),          // mint: passed / on track
+    onPrimary = Color(0xFF04140C),
+    primaryContainer = Color(0xFF0E2A1D),
+    onPrimaryContainer = Color(0xFFB9F5D6),
 
-    secondary = Color(0xFF5CC8FF),        // sky: actions
-    onSecondary = Color(0xFF00202E),
-    secondaryContainer = Color(0xFF0E3550),
-    onSecondaryContainer = Color(0xFFC6EBFF),
+    secondary = Color(0xFF7DBBFF),        // blue: info / links
+    onSecondary = Color(0xFF04182B),
+    secondaryContainer = Color(0xFF14253A),
+    onSecondaryContainer = Color(0xFFCFE6FF),
 
-    tertiary = Color(0xFFFFC44D),         // amber: partial
-    onTertiary = Color(0xFF3A2500),
-    tertiaryContainer = Color(0xFF4A3410),
+    tertiary = Color(0xFFF4BC4E),         // amber: pending / due
+    onTertiary = Color(0xFF2B1B00),
+    tertiaryContainer = Color(0xFF2B2210),
     onTertiaryContainer = Color(0xFFFFE6B0),
 
-    error = Color(0xFFFF6B6B),            // coral: needs attention
-    onError = Color(0xFF450A0A),
+    error = Color(0xFFFF8672),            // coral: failing / gap
+    onError = Color(0xFF3A0B04),
+    errorContainer = Color(0xFF331A1A),
+    onErrorContainer = Color(0xFFFFD9D2),
 
-    background = Color(0xFF070708),
-    onBackground = Color(0xFFEDEFF2),
-    surface = Color(0xFF0D0D0F),
-    onSurface = Color(0xFFEDEFF2),
-    surfaceVariant = Color(0xFF1B1C20),
-    onSurfaceVariant = Color(0xFF9EA3AD),
-    surfaceContainer = Color(0xFF131316),
-    surfaceContainerHigh = Color(0xFF1B1C21),
-    outline = Color(0xFF3A3C44),
-    outlineVariant = Color(0xFF26272D)
+    background = Color(0xFF0A0C0D),
+    onBackground = Color(0xFFEAEFEC),
+    surface = Color(0xFF0A0C0D),
+    onSurface = Color(0xFFEAEFEC),
+    surfaceVariant = Color(0xFF181C1F),
+    onSurfaceVariant = Color(0xFF98A39D),
+    surfaceContainerLowest = Color(0xFF070909),
+    surfaceContainerLow = Color(0xFF0E1112),
+    surfaceContainer = Color(0xFF111416),
+    surfaceContainerHigh = Color(0xFF181C1F),
+    surfaceContainerHighest = Color(0xFF20252A),
+    outline = Color(0xFF3B434A),
+    outlineVariant = Color(0xFF2A3035)
 )
 
 private val LightColors = lightColorScheme(

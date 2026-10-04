@@ -163,27 +163,17 @@ private fun HomeContent(
     onOpen: (String) -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
-    val studiedToday = d.last7Days.lastOrNull()?.studied == true
-    val overdueWeak = d.overdueWeakSpot
-    val reviseDone = d.dueRevisionCount == 0
-    val weakDone = overdueWeak == null && d.overdueWeakSpotCount == 0
-    val doneCount = listOf(reviseDone, weakDone, studiedToday).count { it }
-    val studyText = d.todaysTarget
-        ?.takeIf { !it.startsWith("Revise", ignoreCase = true) }
-        ?.let { cleanTitle(it) }
-        ?: "Pick the next topic in Learn"
-
-    var planOpen by remember { mutableStateOf(false) }
+    var smartOpen by remember { mutableStateOf(false) }
     val chevron by animateFloatAsState(
-        targetValue = if (planOpen) 180f else 0f,
+        targetValue = if (smartOpen) 180f else 0f,
         animationSpec = tween(MOTION_MED),
-        label = "planChevron"
+        label = "smartChevron"
     )
 
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Sp.l, Sp.s, Sp.l, Sp.xxl),
-        verticalArrangement = Arrangement.spacedBy(Sp.l)
+        verticalArrangement = Arrangement.spacedBy(Sp.m)
     ) {
         if (refreshFailed) {
             item {
@@ -206,19 +196,15 @@ private fun HomeContent(
             }
         }
 
-        // 1. Header
+        // Header
         item {
             Row(
                 Modifier.fillMaxWidth().appear(0).padding(start = Sp.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(greetingText(), style = MaterialTheme.typography.headlineMedium)
-                    Text(
-                        todayLine(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = cs.onSurfaceVariant
-                    )
+                    MonoLabel("// ${todayLine()}")
+                    Text("Aaj", style = MaterialTheme.typography.headlineMedium)
                 }
                 IconButton(onClick = { onOpen("search") }) {
                     Icon(Icons.Filled.Search, contentDescription = "Search")
@@ -229,106 +215,72 @@ private fun HomeContent(
             }
         }
 
-        // 1a. Attendance: start / break / end day
+        // Attendance: start / break / end day
         item { AttendanceCard(onOpen = { onOpen("attendance") }, modifier = Modifier.appear(1)) }
 
-        // 1b. Tutor sync: where the tutor left off + live Supabase writes
-        item { TutorCard(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(1)) }
-
-        // 1c. Notes shortcut
+        // The day as a pipeline: warm-up, gap re-test, new session
         item {
-            AppCard(onClick = { onOpen("notes") }, padding = 16.dp, modifier = Modifier.appear(1)) {
-                Text("Notes", style = MaterialTheme.typography.titleMedium)
-                Text("Topic-wise in-depth notes and your own words", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            PipelineCard(
+                d, onStartRevision = onStartRevision, onViewWeakSpots = onViewWeakSpots,
+                onViewMastery = onViewMastery, modifier = Modifier.appear(1)
+            )
         }
 
-        // 2. Hero
-        item { ContinueCard(onGo = onOpen, modifier = Modifier.appear(1), refreshKey = refreshKey) }
-
-        // 3. Backlog rescue (draws only when needed), directly under the hero
+        // Backlog rescue (draws only when needed)
         item { BacklogRescueCard(onGo = onOpen, modifier = Modifier.appear(2), refreshKey = refreshKey) }
 
-        // 4. Status strip (single home for the streak) + last-7-days dots
+        // Three numbers
         item {
-            Column(Modifier.appear(3)) {
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = Sp.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                StatFigure(d.dueRevisionCount, "cards due", Modifier.weight(1f))
-                Box(Modifier.width(1.dp).height(32.dp).background(cs.outlineVariant.copy(alpha = 0.5f)))
-                StatFigure(d.currentStreak, if (d.currentStreak == 1) "day streak" else "day streak", Modifier.weight(1f))
-                Box(Modifier.width(1.dp).height(32.dp).background(cs.outlineVariant.copy(alpha = 0.5f)))
-                StatFigure(d.weekSessionCount, if (d.weekSessionCount == 1) "session / 7d" else "sessions / 7d", Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(Sp.m))
-            DayStrip(d.last7Days)
-            if (d.currentStreak == 0 && d.last7Days.any { it.studied }) {
-                Spacer(Modifier.height(Sp.s))
-                Text(
-                    "Streak restarts when you study today",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            Row(Modifier.fillMaxWidth().appear(2), horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
+                MiniTile(
+                    "gaps", d.overdueWeakSpotCount.toString(),
+                    if (d.overdueWeakSpotCount > 0) cs.error else cs.onSurface,
+                    Modifier.weight(1f), onClick = onViewWeakSpots
                 )
-            }
+                MiniTile(
+                    "cards due", d.dueRevisionCount.toString(),
+                    if (d.dueRevisionCount > 0) cs.tertiary else cs.onSurface,
+                    Modifier.weight(1f), onClick = onStartRevision
+                )
+                MiniTile("streak", "${d.currentStreak}d", cs.onSurface, Modifier.weight(1f), onClick = onViewProgress)
             }
         }
 
-        // 5. Memory ring
+        item { SessionStrip(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(3)) }
 
-        // 6. Collapsible plan
+        item { TutorLogCard(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(3)) }
+
+        // Smart pick (time and energy), collapsed by default
         item {
-            AppCard(modifier = Modifier.appear(5), padding = Sp.l) {
-                Row(
-                    Modifier.fillMaxWidth().clickable { planOpen = !planOpen },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Plan \u00B7 $doneCount of 3 done",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
+            GlowCard(onClick = { smartOpen = !smartOpen }, padding = 14.dp, modifier = Modifier.appear(4)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Kya karu abhi?", style = MaterialTheme.typography.titleSmall)
+                        Text("30 / 60 / 90 min aur energy ke hisaab se suggestion", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    }
                     Icon(
                         Icons.Filled.ExpandMore,
-                        contentDescription = if (planOpen) "Collapse plan" else "Expand plan",
+                        contentDescription = if (smartOpen) "Collapse" else "Expand",
                         tint = cs.onSurfaceVariant,
                         modifier = Modifier.graphicsLayer { rotationZ = chevron }
                     )
                 }
-                AnimatedVisibility(visible = planOpen) {
-                    Column {
-                        Spacer(Modifier.height(Sp.m))
-                        PlanRow(
-                            done = reviseDone,
-                            title = if (reviseDone) "Revision done" else "Revise ${d.dueRevisionCount} card${if (d.dueRevisionCount == 1) "" else "s"}",
-                            sub = d.nextRevision?.takeIf { !reviseDone }?.topicName ?: "Nothing due right now",
-                            action = if (reviseDone) null else "Start",
-                            onAction = onStartRevision
-                        )
-                        PlanRow(
-                            done = weakDone,
-                            title = if (weakDone) "No weak spot overdue" else if (d.overdueWeakSpotCount > 1) "Revisit weak spot (${d.overdueWeakSpotCount} overdue)" else "Revisit weak spot",
-                            sub = overdueWeak?.let { cleanTitle(it.title ?: it.reason) } ?: "You're clear",
-                            action = if (weakDone) null else "Open",
-                            onAction = onViewWeakSpots,
-                            warn = !weakDone
-                        )
-                        PlanRow(
-                            done = studiedToday,
-                            title = if (studiedToday) "Studied today" else "Study next",
-                            sub = studyText,
-                            action = if (studiedToday) null else "Open",
-                            onAction = onViewMastery
-                        )
-                    }
-                }
+            }
+        }
+        item {
+            AnimatedVisibility(visible = smartOpen) {
+                ContinueCard(onGo = onOpen, refreshKey = refreshKey)
             }
         }
 
-        // 7. Quick actions (outlined: the Continue button is the only filled element)
+        item {
+            GlowCard(onClick = { onOpen("notes") }, padding = 14.dp, modifier = Modifier.appear(5)) {
+                Text("Notes", style = MaterialTheme.typography.titleSmall)
+                Text("Topic-wise deep notes aur apne words", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+        }
+
+        // Quick actions
         item {
             Row(
                 Modifier.fillMaxWidth().appear(6),
@@ -362,112 +314,8 @@ private fun HomeContent(
     }
 }
 
-@Composable
-private fun StatFigure(value: Int, label: String, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        AnimatedCount(
-            target = value,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-    }
-}
-
-@Composable
-private fun PlanRow(
-    done: Boolean,
-    title: String,
-    sub: String,
-    action: String?,
-    onAction: () -> Unit,
-    warn: Boolean = false
-) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        StatusDot(done)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                sub,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (warn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
-        }
-        if (action != null) {
-            FilledTonalButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 16.dp)) {
-                Text(action, style = MaterialTheme.typography.labelLarge)
-            }
-        }
-    }
-}
-
 private fun todayLine(): String {
     val d = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val dow = d.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
     return "$dow ${friendlyDate(d.toString())}"
-}
-
-// Ringed calendar dates: a filled disc = studied, an outline = not, and the
-// sky-blue ring marks today.
-@Composable
-private fun DayStrip(days: List<DayStatus>) {
-    val studiedCount = days.count { it.studied }
-    Row(
-        Modifier.fillMaxWidth().semantics { contentDescription = "Studied $studiedCount of last ${days.size} days" },
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        days.forEach { day ->
-            val dom = day.date.takeLast(2).trimStart('0')
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    day.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .sizeIn(minWidth = 34.dp, minHeight = 34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (day.studied) MaterialTheme.colorScheme.primary
-                            else Color.Transparent
-                        )
-                        .border(
-                            width = if (day.isToday) 2.5.dp else 1.5.dp,
-                            color = when {
-                                day.isToday -> MaterialTheme.colorScheme.secondary
-                                day.studied -> MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.outline
-                            },
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        dom,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (day.studied) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
 }

@@ -29,6 +29,30 @@ sealed class MdBlock {
     data class Bullet(val text: String, val marker: String) : MdBlock()
     data class Code(val text: String) : MdBlock()
     data class Table(val header: List<String>, val rows: List<List<String>>) : MdBlock()
+    // ```stack|nest|steps|seq <title>  rows are "a | b | c" cells (see DIAGRAM_KINDS)
+    data class Diagram(val kind: String, val title: String, val rows: List<List<String>>) : MdBlock()
+    // ```callout attacker|defender|misconception|recap|warn|info
+    data class Callout(val kind: String, val text: String) : MdBlock()
+}
+
+val DIAGRAM_KINDS = setOf("stack", "nest", "steps", "seq")
+
+private fun splitCells(line: String): List<String> = line.split("|").map { it.trim() }
+
+// An attacker callout directly followed by a defender callout are shown side by side.
+fun pairCallouts(blocks: List<MdBlock>): List<List<MdBlock>> {
+    val out = ArrayList<List<MdBlock>>()
+    var i = 0
+    while (i < blocks.size) {
+        val b = blocks[i]
+        val n = blocks.getOrNull(i + 1)
+        if (b is MdBlock.Callout && n is MdBlock.Callout && b.kind == "attacker" && n.kind == "defender") {
+            out.add(listOf(b, n)); i += 2
+        } else {
+            out.add(listOf(b)); i++
+        }
+    }
+    return out
 }
 
 private fun splitRow(line: String): List<String> =
@@ -54,12 +78,23 @@ fun parseMarkdown(md: String): List<MdBlock> {
         when {
             t.startsWith("```") -> {
                 flushPara()
-                val code = StringBuilder()
+                val head = t.removePrefix("```").trim()
+                val kind = head.substringBefore(' ').lowercase()
+                val title = head.substringAfter(' ', "").trim()
+                val body = ArrayList<String>()
                 i++
                 while (i < lines.size && !lines[i].trim().startsWith("```")) {
-                    code.append(lines[i]).append('\n'); i++
+                    body.add(lines[i]); i++
                 }
-                out.add(MdBlock.Code(code.toString().trimEnd('\n')))
+                out.add(
+                    when {
+                        kind in DIAGRAM_KINDS ->
+                            MdBlock.Diagram(kind, title, body.filter { it.isNotBlank() }.map { splitCells(it) })
+                        kind == "callout" ->
+                            MdBlock.Callout(title.lowercase().ifEmpty { "info" }, body.joinToString("\n").trim())
+                        else -> MdBlock.Code(body.joinToString("\n").trimEnd('\n'))
+                    }
+                )
             }
             t.startsWith("#") && t.dropWhile { it == '#' }.startsWith(" ") -> {
                 flushPara()
@@ -93,7 +128,7 @@ fun parseMarkdown(md: String): List<MdBlock> {
 }
 
 @Composable
-private fun inline(text: String): AnnotatedString {
+internal fun inline(text: String): AnnotatedString {
     val codeBg = MaterialTheme.colorScheme.surfaceContainerHighest
     return buildAnnotatedString {
         var i = 0
@@ -121,47 +156,61 @@ private fun inline(text: String): AnnotatedString {
 
 @Composable
 fun MarkdownView(md: String, modifier: Modifier = Modifier) {
-    val cs = MaterialTheme.colorScheme
     val blocks = androidx.compose.runtime.remember(md) { parseMarkdown(md) }
+    val groups = androidx.compose.runtime.remember(blocks) { pairCallouts(blocks) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Sp.s)) {
-        blocks.forEach { b ->
-            when (b) {
-                is MdBlock.Heading -> Text(
-                    inline(b.text),
-                    style = when (b.level) {
-                        1 -> MaterialTheme.typography.headlineSmall
-                        2 -> MaterialTheme.typography.titleLarge
-                        else -> MaterialTheme.typography.titleMedium
-                    },
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = if (b.level <= 2) Sp.s else Sp.xs)
-                )
-                is MdBlock.Para -> Text(inline(b.text), style = MaterialTheme.typography.bodyMedium)
-                is MdBlock.Bullet -> Row {
-                    Text(b.marker, Modifier.width(24.dp), style = MaterialTheme.typography.bodyMedium, color = cs.primary)
-                    Text(inline(b.text), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        groups.forEach { g ->
+            if (g.size == 2) {
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
+                    g.forEach { CalloutView(it as MdBlock.Callout, Modifier.weight(1f).fillMaxHeight()) }
                 }
-                is MdBlock.Code -> Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(cs.surfaceContainerHighest).horizontalScroll(rememberScrollState()).padding(Sp.m)
-                ) {
-                    Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp, softWrap = false)
-                }
-                is MdBlock.Table -> Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer).padding(Sp.s)
-                ) {
-                    Row(Modifier.fillMaxWidth()) {
-                        b.header.forEach { Text(inline(it), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
-                    }
-                    b.rows.forEach { r ->
-                        Row(Modifier.fillMaxWidth()) {
-                            b.header.indices.forEach { c ->
-                                Text(inline(r.getOrElse(c) { "" }), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
+            } else {
+                BlockView(g[0])
+            }
+        }
+    }
+}
+
+@Composable
+private fun BlockView(b: MdBlock) {
+    val cs = MaterialTheme.colorScheme
+    when (b) {
+        is MdBlock.Heading -> Text(
+            inline(b.text),
+            style = when (b.level) {
+                1 -> MaterialTheme.typography.headlineSmall
+                2 -> MaterialTheme.typography.titleLarge
+                else -> MaterialTheme.typography.titleMedium
+            },
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = if (b.level <= 2) Sp.s else Sp.xs)
+        )
+        is MdBlock.Para -> Text(inline(b.text), style = MaterialTheme.typography.bodyMedium)
+        is MdBlock.Bullet -> Row {
+            Text(b.marker, Modifier.width(24.dp), style = MaterialTheme.typography.bodyMedium, color = cs.primary)
+            Text(inline(b.text), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        }
+        is MdBlock.Code -> Box(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                .background(cs.surfaceContainerHighest).horizontalScroll(rememberScrollState()).padding(Sp.m)
+        ) {
+            Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp, softWrap = false)
+        }
+        is MdBlock.Table -> Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer).padding(Sp.s)
+        ) {
+            Row(Modifier.fillMaxWidth()) {
+                b.header.forEach { Text(inline(it), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+            }
+            b.rows.forEach { r ->
+                Row(Modifier.fillMaxWidth()) {
+                    b.header.indices.forEach { c ->
+                        Text(inline(r.getOrElse(c) { "" }), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
         }
+        is MdBlock.Diagram -> DiagramView(b)
+        is MdBlock.Callout -> CalloutView(b, Modifier.fillMaxWidth())
     }
 }

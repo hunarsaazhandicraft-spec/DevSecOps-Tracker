@@ -1,6 +1,7 @@
 package com.devsecops.tracker.data
 
 import com.devsecops.tracker.ui.MdBlock
+import com.devsecops.tracker.ui.pairCallouts
 import com.devsecops.tracker.ui.parseMarkdown
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -57,5 +58,32 @@ class ResourcesTest {
         assertEquals(null, Resources.openableUrl(null))
         assertEquals(null, Resources.openableUrl("javascript:alert(1)"))
         assertEquals(null, Resources.openableUrl("content://x"))
+    }
+
+    @Test
+    fun parse_diagramBlocksAndCallouts() {
+        val md = "```stack OSI\nApplication | HTTP | data\nTransport | TCP | segment\n```\n" +
+            "```seq handshake\nclient | server\nclient -> server | SYN\n```\n" +
+            "```callout attacker\nARP spoofing\n```\n```callout defender\nfirewall\n```\n```bash\nls | wc\n```"
+        val b = parseMarkdown(md)
+        val st = b[0] as MdBlock.Diagram
+        assertEquals("stack", st.kind)
+        assertEquals("OSI", st.title)
+        assertEquals(listOf("Transport", "TCP", "segment"), st.rows[1])
+        val sq = b[1] as MdBlock.Diagram
+        assertEquals(listOf("client -> server", "SYN"), sq.rows[1])
+        assertEquals(MdBlock.Callout("attacker", "ARP spoofing"), b[2])
+        assertEquals(MdBlock.Code("ls | wc"), b[4])
+    }
+
+    @Test
+    fun pairCallouts_attackerThenDefenderShareARow() {
+        val a = MdBlock.Callout("attacker", "x")
+        val d = MdBlock.Callout("defender", "y")
+        val p = MdBlock.Para("p")
+        val g = pairCallouts(listOf(p, a, d, a))
+        assertEquals(3, g.size)
+        assertEquals(listOf<MdBlock>(a, d), g[1])
+        assertEquals(listOf<MdBlock>(a), g[2])
     }
 }
