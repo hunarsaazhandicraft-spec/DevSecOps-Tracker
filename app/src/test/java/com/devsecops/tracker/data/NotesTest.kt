@@ -48,3 +48,14 @@ class NotesTest {
         assertTrue(!Notes.shareText(listOf(n.copy(my_words = null))).contains("Mere shabdon mein"))
     }
 }
+
+class ResourcesTest {
+    @Test
+    fun openableUrl_onlyHttpLinks() {
+        assertEquals("https://x.org/a", Resources.openableUrl(" https://x.org/a "))
+        assertEquals("http://x.org", Resources.openableUrl("http://x.org"))
+        assertEquals(null, Resources.openableUrl(null))
+        assertEquals(null, Resources.openableUrl("javascript:alert(1)"))
+        assertEquals(null, Resources.openableUrl("content://x"))
+    }
+}

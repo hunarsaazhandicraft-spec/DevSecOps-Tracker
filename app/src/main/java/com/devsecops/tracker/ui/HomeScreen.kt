@@ -235,6 +235,14 @@ private fun HomeContent(
         // 1b. Tutor sync: where the tutor left off + live Supabase writes
         item { TutorCard(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(1)) }
 
+        // 1c. Notes shortcut
+        item {
+            AppCard(onClick = { onOpen("notes") }, padding = 16.dp, modifier = Modifier.appear(1)) {
+                Text("Notes", style = MaterialTheme.typography.titleMedium)
+                Text("Topic-wise in-depth notes and your own words", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
         // 2. Hero
         item { ContinueCard(onGo = onOpen, modifier = Modifier.appear(1), refreshKey = refreshKey) }
 

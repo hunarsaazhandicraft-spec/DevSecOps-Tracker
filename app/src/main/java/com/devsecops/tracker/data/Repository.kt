@@ -422,14 +422,9 @@ object Repository {
         afterWrite()
     }
 
-    // mastery_records is append-only by design (the DB grants SELECT +
-    // INSERT only) — there is deliberately no update or delete here.
+    // mastery_records is written ONLY by the tutor (service side). The app has
+    // SELECT only: no insert, update or delete here, by design.
     suspend fun listMasteryRecords(): List<MasteryRecord> = Fetch.masteryRecords()
-
-    suspend fun recordMastery(entry: MasteryRecordInsert) {
-        Supa.client.from("mastery_records").insert(entry)
-        afterWrite()
-    }
 
     // ---- Mastery screen ---------------------------------------------------
 

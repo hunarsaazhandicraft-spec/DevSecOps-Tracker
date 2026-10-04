@@ -74,6 +74,7 @@ private object Routes {
     const val ATTENDANCE = "attendance"
     const val GATES = "gates"
     const val NOTES = "notes"
+    const val RESOURCES = "resources"
     const val NOTE = "note/{id}"
     const val CHAT = "chat/{no}"
     const val DOC = "doc?path={path}"
@@ -271,6 +272,7 @@ fun TrackerNavHost() {
                 )
             }
             composable(Routes.GATES) { GatesLabsScreen { navController.popBackStack() } }
+            composable(Routes.RESOURCES) { ResourcesScreen { navController.popBackStack() } }
             composable(Routes.NOTES) {
                 NotesScreen(onBack = { navController.popBackStack() }, onOpenNote = { navController.navigate("note/$it") })
             }
