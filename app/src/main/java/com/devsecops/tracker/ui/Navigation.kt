@@ -73,6 +73,8 @@ private object Routes {
     const val LIBRARY = "library"
     const val ATTENDANCE = "attendance"
     const val GATES = "gates"
+    const val NOTES = "notes"
+    const val NOTE = "note/{id}"
     const val CHAT = "chat/{no}"
     const val DOC = "doc?path={path}"
 }
@@ -269,6 +271,12 @@ fun TrackerNavHost() {
                 )
             }
             composable(Routes.GATES) { GatesLabsScreen { navController.popBackStack() } }
+            composable(Routes.NOTES) {
+                NotesScreen(onBack = { navController.popBackStack() }, onOpenNote = { navController.navigate("note/$it") })
+            }
+            composable(Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
+                NoteDetailScreen(noteId = entry.arguments?.getLong("id") ?: 0L, onBack = { navController.popBackStack() })
+            }
             composable(Routes.ATTENDANCE) { AttendanceScreen { navController.popBackStack() } }
             composable(Routes.PLANNER) { PlannerScreen { navController.popBackStack() } }
             composable(Routes.FOCUS) { FocusScreen { navController.popBackStack() } }

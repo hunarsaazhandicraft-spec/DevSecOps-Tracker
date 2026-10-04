@@ -185,6 +185,10 @@ private fun LibraryContent(counts: LibraryCounts?, onOpen: (String) -> Unit) {
         Text("Learn: mastery by module", style = MaterialTheme.typography.titleSmall)
         Text("Evidence levels L1-L5 the tutor recorded", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+    AppCard(onClick = { onOpen("notes") }, padding = 16.dp) {
+        Text("Notes", style = MaterialTheme.typography.titleSmall)
+        Text("In-depth topic notes written by the tutor, with your own words", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     AppCard(onClick = { onOpen("gates") }, padding = 16.dp) {
         Text("Gates and labs", style = MaterialTheme.typography.titleSmall)
         Text("Every mastery gate with its checks, and the 22 lab setups with scope and safety rules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
