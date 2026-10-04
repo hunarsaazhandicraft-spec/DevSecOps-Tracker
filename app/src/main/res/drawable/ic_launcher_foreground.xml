@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Shield: security. -->
+    <path
+        android:fillColor="#4DFFA6"
+        android:pathData="M54,27 L77,35.5 L77,55 C77,69.5 67,78.5 54,84 C41,78.5 31,69.5 31,55 L31,35.5 Z" />
+    <!-- Three rising chevrons: mastery levels, fading like memory unless renewed. -->
+    <path
+        android:pathData="M42,53 L54,43 L66,53"
+        android:strokeColor="#070708"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M42,62 L54,52 L66,62"
+        android:strokeColor="#070708"
+        android:strokeAlpha="0.6"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M45.5,70.5 L54,62.5 L62.5,70.5"
+        android:strokeColor="#070708"
+        android:strokeAlpha="0.3"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

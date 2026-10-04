@@ -1,0 +1,14 @@
+<resources>
+    <string name="widget_small_name">Today (small)</string>
+    <string name="widget_medium_name">Today (medium)</string>
+    <string name="widget_strip_name">Today (strip)</string>
+    <string name="widget_small_description">Cards due and your streak. Tap to revise.</string>
+    <string name="widget_medium_description">Due cards, streak, next step and quick actions.</string>
+    <string name="widget_strip_description">One-line summary of due cards and streak.</string>
+    <string name="widget_due">due</string>
+    <string name="widget_caught_up">All caught up</string>
+    <string name="widget_revise">Revise</string>
+    <string name="widget_log_study">Log study</string>
+    <string name="widget_continue">Continue ▸</string>
+    <string name="widget_next_default">Open the app to sync</string>
+</resources>

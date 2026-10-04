@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Backups live in internal storage; FileProvider is what lets the
+         share sheet read one out without making the folder world-readable. -->
+    <files-path name="backups" path="backups/" />
+</paths>
