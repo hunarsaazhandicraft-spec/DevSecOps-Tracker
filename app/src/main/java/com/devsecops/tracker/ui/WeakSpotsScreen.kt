@@ -139,8 +139,10 @@ private fun WeakSpotCard(ws: WeakSpot, moduleLabel: String, modifier: Modifier =
     val cs = MaterialTheme.colorScheme
     val cleared = ws.cleared_at != null
     val late = !cleared && isOverdue(ws.revisit_date)
-    AppCard(modifier = modifier, padding = 18.dp) {
+    GlowCard(modifier, glow = late, padding = 18.dp) {
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            StatGlyph(if (cleared) Stat.PASS else Stat.FAIL, 22.dp)
+            Spacer(Modifier.width(8.dp))
             if (late) Pill("Overdue", cs.error)
             else if (cleared) Pill("Cleared", cs.primary)
             else {
@@ -154,7 +156,7 @@ private fun WeakSpotCard(ws: WeakSpot, moduleLabel: String, modifier: Modifier =
                 Pill(sev, sevColor)
             }
             Spacer(Modifier.width(8.dp))
-            Text(moduleLabel, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
+            MonoLabel(moduleLabel)
         }
         Spacer(Modifier.height(10.dp))
         Text(cleanTitle(ws.title ?: ws.reason), style = MaterialTheme.typography.titleMedium)
