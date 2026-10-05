@@ -215,7 +215,7 @@ private fun CardView(
             if (due.lapses >= 3) Pill("Leech \u00B7 Again \u00D7${due.lapses}", cs.error)
         }
 
-        AppCard(Modifier, padding = 22.dp) {
+        GlowCard(Modifier, glow = !revealed, padding = 22.dp) {
             Column(
                 Modifier
                     .fillMaxWidth()

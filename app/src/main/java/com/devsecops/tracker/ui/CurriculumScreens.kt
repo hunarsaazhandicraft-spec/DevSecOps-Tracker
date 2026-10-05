@@ -427,8 +427,8 @@ fun LibraryScreen(onOpenDoc: (String) -> Unit) {
             ) {
                 item {
                     Column(Modifier.padding(start = Sp.xs, bottom = Sp.s)) {
+                        MonoLabel("// ${all.size} project files · read-only copies")
                         Text("Library", style = MaterialTheme.typography.headlineMedium)
-                        Text("${all.size} project files · read-only copies (originals never change)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 item {
@@ -464,7 +464,7 @@ fun LibraryScreen(onOpenDoc: (String) -> Unit) {
 @Composable
 private fun DocRow(d: DocMeta, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    AppCard(onClick = onClick, padding = Sp.m) {
+    GlowCard(onClick = onClick, padding = Sp.m) {
         Text(d.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(d.path, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(Sp.xs))

@@ -401,9 +401,9 @@ fun SearchScreen(onBack: () -> Unit) {
         OutlinedTextField(q, { q = it }, label = { Text("Topics, glossary, commands, cards") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         if (searched && hits.isEmpty()) Text("Nothing found.")
         hits.forEach { h ->
-            AppCard(padding = 0.dp) {
+            GlowCard(padding = 0.dp) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(h.kind.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    MonoLabel(h.kind, color = MaterialTheme.colorScheme.primary)
                     Text(h.title, fontWeight = FontWeight.SemiBold)
                     if (h.detail.isNotBlank()) Text(h.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
