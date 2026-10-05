@@ -7,10 +7,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
@@ -25,6 +30,9 @@ import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -127,6 +135,17 @@ fun TrackerNavHost() {
         }
     }
 
+    fun selectTab(route: String) {
+        if (currentRoute != route) {
+            navController.navigate(route) {
+                // Switching tabs shouldn't pile up history.
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+
     val deepTarget = DeepLink.target
     LaunchedEffect(deepTarget) {
         when (deepTarget) {
@@ -136,25 +155,19 @@ fun TrackerNavHost() {
         if (deepTarget != null) DeepLink.target = null
     }
 
+    // Responsive: phone (<600dp) bottom bar; tablet portrait (600-840dp) side
+    // rail; landscape tablet (>840dp) side rail with a wider content column.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val wide = maxWidth >= 600.dp
+    val contentMax = if (maxWidth > 840.dp) 960.dp else 720.dp
     Scaffold(
         bottomBar = {
-            if (isTopLevel) {
+            if (isTopLevel && !wide) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     TABS.forEach { tab ->
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
-                            onClick = {
-                                if (currentRoute != tab.route) {
-                                    navController.navigate(tab.route) {
-                                        // Switching tabs shouldn't pile up history.
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
+                            onClick = { selectTab(tab.route) },
                             icon = { Icon(tab.icon, contentDescription = null) },
                             label = { Text(tab.label, style = MaterialTheme.typography.labelMedium) },
                             colors = NavigationBarItemDefaults.colors(
@@ -170,19 +183,43 @@ fun TrackerNavHost() {
             }
         }
     ) { scaffoldPadding ->
+        Row(
+            Modifier
+                .padding(scaffoldPadding)
+                .consumeWindowInsets(scaffoldPadding)
+        ) {
+        if (wide && isTopLevel) {
+            NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+                Spacer(Modifier.height(8.dp))
+                TABS.forEach { tab ->
+                    NavigationRailItem(
+                        selected = currentRoute == tab.route,
+                        onClick = { selectTab(tab.route) },
+                        icon = { Icon(tab.icon, contentDescription = null) },
+                        label = { Text(tab.label, style = MaterialTheme.typography.labelMedium) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+        }
+        Box(Modifier.weight(1f)) {
         NavHost(
             navController = navController,
             startDestination = Routes.TODAY,
             // Outer Scaffold owns the system-bar insets; mark them consumed so inner
             // Scaffolds don't add them a second time. IME is handled once, here.
             modifier = Modifier
-                .padding(scaffoldPadding)
-                .consumeWindowInsets(scaffoldPadding)
                 .imePadding()
-                // Keep content readable on a wide tablet: centred column, max 720dp.
+                // Keep content readable on a wide tablet: centred column.
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 720.dp),
+                .widthIn(max = contentMax),
             enterTransition = {
                 if (TABS.any { it.route == targetState.destination.route }) fadeIn(tween(150))
                 else slideIn()
@@ -315,6 +352,9 @@ fun TrackerNavHost() {
                 SettingsScreen(onBack = { navController.popBackStack() })
             }
         }
+        }
+        }
+    }
     }
 }
 

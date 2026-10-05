@@ -122,8 +122,10 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
                             WeakSpotCard(
                                 ws,
                                 modifier = Modifier.appear(idx),
-                                moduleLabel = (ws.module_id?.let { moduleNames[it] } ?: "") +
-                                    (topicNames[ws.topic_id]?.let { " · $it" } ?: ""),
+                                moduleLabel = listOfNotNull(
+                                    ws.module_id?.let { moduleNames[it] },
+                                    topicNames[ws.topic_id]
+                                ).joinToString(" · "),
                                 onClear = { confirmId = ws.id }
                             )
                         }
