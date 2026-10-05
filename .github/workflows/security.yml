@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Trivy filesystem scan (fails on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scanners: vuln,secret,misconfig
@@ -36,7 +36,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
       - name: Generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           format: cyclonedx
@@ -56,7 +56,9 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Build release APK (no secrets available here)
-        run: ./gradlew assembleRelease lintRelease --no-daemon
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease lintRelease --no-daemon
       - name: detekt (static analysis)
         run: |
           curl -sSL -o detekt-cli.zip https://github.com/detekt/detekt/releases/download/v1.23.6/detekt-cli-1.23.6.zip
