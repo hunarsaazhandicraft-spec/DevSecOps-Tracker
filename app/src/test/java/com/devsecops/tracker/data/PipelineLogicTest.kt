@@ -5,6 +5,8 @@ import com.devsecops.tracker.ui.Stat
 import com.devsecops.tracker.ui.chatStat
 import com.devsecops.tracker.ui.levelNumber
 import com.devsecops.tracker.ui.nextDayNumber
+import com.devsecops.tracker.ui.sectionMatches
+import com.devsecops.tracker.ui.splitSections
 import com.devsecops.tracker.ui.topicStat
 import com.devsecops.tracker.ui.pipelineStats
 import com.devsecops.tracker.ui.sessionNodes
@@ -102,5 +104,21 @@ class PipelineLogicTest {
         assertEquals(Stat.PENDING, topicStat("L2", true))
         assertEquals(Stat.RUN, topicStat(null, true))
         assertEquals(Stat.QUEUED, topicStat(null, false))
+    }
+
+    @Test
+    fun splitSections_splitsAtHeadingsAndIgnoresFences() {
+        val md = "intro\n\n## Ek line\nhello\n\n## Real artifact\n```bash\n## not a heading\nls\n```\n\n## Recall\n1. q"
+        val s = splitSections(md)
+        assertEquals(listOf("", "Ek line", "Real artifact", "Recall"), s.map { it.heading })
+        assertEquals(true, s[2].body.contains("## not a heading"))
+    }
+
+    @Test
+    fun sectionMatches_isCaseInsensitiveAndNeedsTwoChars() {
+        val s = splitSections("## A\nSYN flood\n\n## B\nnothing")
+        assertEquals(listOf(0), sectionMatches(s, "syn"))
+        assertEquals(emptyList<Int>(), sectionMatches(s, "s"))
+        assertEquals(listOf(1), sectionMatches(s, "nothing"))
     }
 }

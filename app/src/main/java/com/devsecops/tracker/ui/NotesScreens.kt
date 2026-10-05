@@ -3,6 +3,11 @@ package com.devsecops.tracker.ui
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
@@ -242,62 +247,122 @@ fun NoteDetailScreen(noteId: Long, onBack: () -> Unit) {
         when {
             err != null && n == null -> ErrorBlock(err!!, onRetry = { scope.launch { load() } })
             n == null -> SkeletonList()
-            else -> LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = Sp.l, vertical = Sp.s),
-                verticalArrangement = Arrangement.spacedBy(Sp.m)
-            ) {
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
-                        Pill(if (n.status == "reviewed") "Reviewed" else "Draft", if (n.status == "reviewed") cs.primary else cs.onSurfaceVariant)
-                        if (weak != null) Pill("Weak spot", cs.error)
-                        if (n.part > 1) Pill("Part ${n.part}", cs.tertiary)
-                    }
+            else -> {
+                val sections = remember(n.content_md) { splitSections(n.content_md) }
+                val listState = rememberLazyListState()
+                var find by remember { mutableStateOf("") }
+                var matchPos by remember { mutableIntStateOf(0) }
+                val matches = remember(find, sections) { sectionMatches(sections, find) }
+                LaunchedEffect(find) { matchPos = 0 }
+                // Items before the first section: pills, [weak card], outline, find.
+                val pre = 3 + (if (weak != null) 1 else 0)
+                fun jump(idx: Int) { scope.launch { listState.animateScrollToItem(pre + idx) } }
+                val wordsCard: @Composable () -> Unit = {
+                    WordsCard(
+                        words = words, onWords = { words = it }, offline = offline, busy = busy,
+                        reviewed = n.status == "reviewed", msg = msg, onSave = { save(it) }
+                    )
                 }
-                weak?.let { w ->
-                    item {
-                        AppCard(padding = Sp.m) {
-                            Text("Is topic par weak spot khula hai", style = MaterialTheme.typography.labelLarge, color = cs.error)
-                            Text(w.title ?: w.reason, style = MaterialTheme.typography.bodySmall)
-                            w.required_action?.takeIf { it.isNotBlank() }?.let {
-                                Text("Karna hai: $it", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val twoPane = maxWidth > 840.dp
+                    Row(Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            Modifier.weight(if (twoPane) 1.6f else 1f).fillMaxHeight(),
+                            state = listState,
+                            contentPadding = PaddingValues(horizontal = Sp.l, vertical = Sp.s),
+                            verticalArrangement = Arrangement.spacedBy(Sp.m)
+                        ) {
+                            item {
+                                Row(horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
+                                    Pill(if (n.status == "reviewed") "Reviewed" else "Draft", if (n.status == "reviewed") cs.primary else cs.onSurfaceVariant)
+                                    if (weak != null) Pill("Weak spot", cs.error)
+                                    if (n.part > 1) Pill("Part ${n.part}", cs.tertiary)
+                                }
                             }
+                            weak?.let { w ->
+                                item {
+                                    AppCard(padding = Sp.m) {
+                                        Text("Is topic par weak spot khula hai", style = MaterialTheme.typography.labelLarge, color = cs.error)
+                                        Text(w.title ?: w.reason, style = MaterialTheme.typography.bodySmall)
+                                        w.required_action?.takeIf { it.isNotBlank() }?.let {
+                                            Text("Karna hai: $it", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                            item {
+                                val heads = sections.withIndex().filter { it.value.heading.isNotBlank() }
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
+                                    items(heads, key = { it.index }) { h ->
+                                        AssistChip(onClick = { jump(h.index) }, label = { Text(h.value.heading, maxLines = 1) })
+                                    }
+                                }
+                            }
+                            item {
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
+                                    OutlinedTextField(
+                                        value = find, onValueChange = { find = it }, singleLine = true,
+                                        label = { Text("Note mein dhundo") }, modifier = Modifier.weight(1f)
+                                    )
+                                    if (find.trim().length >= 2) {
+                                        if (matches.isEmpty()) Text("0", color = cs.onSurfaceVariant)
+                                        else TextButton(onClick = {
+                                            val next = (matchPos + 1) % matches.size
+                                            matchPos = next
+                                            jump(matches[next])
+                                        }) { Text("${matchPos + 1}/${matches.size} next") }
+                                    }
+                                }
+                            }
+                            items(sections.size, key = { "s$it" }) { i -> MarkdownView(sections[i].body) }
+                            if (!twoPane) item { wordsCard() }
+                            if (cards.isNotEmpty()) {
+                                item { GroupHeader("Revision cards (${cards.size})", "Sirf sawaal. Jawab Revise tab mein.") }
+                                items(cards, key = { it.id }) { c ->
+                                    AppCard(padding = Sp.m) { Text(c.question, style = MaterialTheme.typography.bodyMedium) }
+                                }
+                            }
+                            item { Spacer(Modifier.height(Sp.xxl)) }
+                        }
+                        if (twoPane) {
+                            Column(
+                                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
+                                    .padding(end = Sp.l, top = Sp.s, bottom = Sp.xxl)
+                            ) { wordsCard() }
                         }
                     }
                 }
-                item { MarkdownView(n.content_md) }
-                item {
-                    AppCard(padding = Sp.m) {
-                        Text("Mere shabdon mein", style = MaterialTheme.typography.titleSmall)
-                        Text("Bina dekhe, apne words mein likho. Reviewed tabhi hoga jab yahan kuch likha ho.",
-                            style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                        Spacer(Modifier.height(Sp.s))
-                        OutlinedTextField(
-                            value = words, onValueChange = { words = it },
-                            enabled = !offline && !busy, minLines = 4,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (offline) Text("Offline: editing band hai.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                        Spacer(Modifier.height(Sp.s))
-                        Row(horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
-                            OutlinedButton(enabled = !offline && !busy, onClick = { save(n.status == "reviewed") }) { Text("Save") }
-                            if (n.status == "reviewed") {
-                                OutlinedButton(enabled = !offline && !busy, onClick = { save(false) }) { Text("Back to draft") }
-                            } else {
-                                Button(enabled = !offline && !busy && words.isNotBlank(), onClick = { save(true) }) { Text("Mark reviewed") }
-                            }
-                        }
-                        msg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = cs.primary) }
-                    }
-                }
-                if (cards.isNotEmpty()) {
-                    item { GroupHeader("Revision cards (${cards.size})", "Sirf sawaal. Jawab Revise tab mein.") }
-                    items(cards, key = { it.id }) { c ->
-                        AppCard(padding = Sp.m) { Text(c.question, style = MaterialTheme.typography.bodyMedium) }
-                    }
-                }
-                item { Spacer(Modifier.height(Sp.xxl)) }
             }
         }
+    }
+}
+
+@Composable
+private fun WordsCard(
+    words: String, onWords: (String) -> Unit, offline: Boolean, busy: Boolean,
+    reviewed: Boolean, msg: String?, onSave: (Boolean) -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+    AppCard(padding = Sp.m) {
+        Text("Mere shabdon mein", style = MaterialTheme.typography.titleSmall)
+        Text("Bina dekhe, apne words mein likho. Reviewed tabhi hoga jab yahan kuch likha ho.",
+            style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+        Spacer(Modifier.height(Sp.s))
+        OutlinedTextField(
+            value = words, onValueChange = onWords,
+            enabled = !offline && !busy, minLines = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (offline) Text("Offline: editing band hai.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+        Spacer(Modifier.height(Sp.s))
+        Row(horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
+            OutlinedButton(enabled = !offline && !busy, onClick = { onSave(reviewed) }) { Text("Save") }
+            if (reviewed) {
+                OutlinedButton(enabled = !offline && !busy, onClick = { onSave(false) }) { Text("Back to draft") }
+            } else {
+                Button(enabled = !offline && !busy && words.isNotBlank(), onClick = { onSave(true) }) { Text("Mark reviewed") }
+            }
+        }
+        msg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = cs.primary) }
     }
 }

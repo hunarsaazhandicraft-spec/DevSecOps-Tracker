@@ -80,3 +80,41 @@ fun topicStat(level: String?, studied: Boolean): Stat = when {
     studied -> Stat.RUN
     else -> Stat.QUEUED
 }
+
+// ---- Note reader: outline + find ------------------------------------------
+
+data class NoteSection(val heading: String, val body: String)
+
+// Splits note Markdown at "## " headings (ignoring "## " lines inside ``` fences).
+// Text before the first heading becomes a section with an empty heading.
+fun splitSections(md: String): List<NoteSection> {
+    val out = mutableListOf<NoteSection>()
+    var head = ""
+    val buf = StringBuilder()
+    var inFence = false
+    fun flush() {
+        val text = buf.toString().trimEnd('\n')
+        if (text.isNotBlank()) out.add(NoteSection(head, text))
+        buf.clear()
+    }
+    for (line in md.lines()) {
+        if (line.trimStart().startsWith("```")) inFence = !inFence
+        if (!inFence && line.startsWith("## ")) {
+            flush()
+            head = line.removePrefix("## ").trim()
+        }
+        buf.append(line).append('\n')
+    }
+    flush()
+    return out
+}
+
+// Indexes of sections whose heading or body contains the query (case-insensitive).
+// Fewer than 2 characters matches nothing.
+fun sectionMatches(sections: List<NoteSection>, query: String): List<Int> {
+    val q = query.trim()
+    if (q.length < 2) return emptyList()
+    return sections.mapIndexedNotNull { i, s ->
+        if (s.heading.contains(q, true) || s.body.contains(q, true)) i else null
+    }
+}

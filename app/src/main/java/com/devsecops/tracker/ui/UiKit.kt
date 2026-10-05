@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -45,8 +46,11 @@ fun AppCard(
     padding: Dp = Sp.l,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    // V3: 16dp corners and a hairline border, same as GlowCard, so every card
+    // in the app (Progress, Mastery, Settings, Planner, Gates...) matches.
+    val shape = RoundedCornerShape(16.dp)
     val base = modifier.fillMaxWidth().clip(shape).background(container)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
     Column(
         (if (onClick != null) base.clickableScale(haptic = false, onClick = onClick) else base).padding(padding),
         content = content

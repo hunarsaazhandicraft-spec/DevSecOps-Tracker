@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -208,6 +209,14 @@ fun TrackerNavHost() {
                 }
             }
         }
+        Column(Modifier.weight(1f)) {
+        if (isTopLevel && currentRoute != Routes.TODAY) {
+            SessionBar(
+                refreshKey = currentRoute,
+                onClick = { goTab(Routes.PATH) },
+                modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = contentMax)
+            )
+        }
         Box(Modifier.weight(1f)) {
         NavHost(
             navController = navController,
@@ -351,6 +360,7 @@ fun TrackerNavHost() {
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })
             }
+        }
         }
         }
         }
