@@ -180,14 +180,13 @@ data class PathChat(val chat: ChatPlanRow, val state: ChatState)
 // Extras for the study packet of one chat (all read-only).
 data class PacketExtras(
     val notes: List<NoteMeta>,
-    val labs: List<LabRow>,
-    val resources: List<ResourceRow>
+    val labs: List<LabRow>
 )
 
 object Curriculum {
 
     suspend fun packetExtras(moduleCode: String?): PacketExtras {
-        if (moduleCode.isNullOrBlank()) return PacketExtras(emptyList(), emptyList(), emptyList())
+        if (moduleCode.isNullOrBlank()) return PacketExtras(emptyList(), emptyList())
         val modId = runCatching {
             Supa.client.from("modules").select(Columns.list("id", "code")) {
                 filter { eq("code", moduleCode) }
@@ -197,12 +196,7 @@ object Curriculum {
             runCatching { Notes.list().filter { it.module_id == modId } }.getOrDefault(emptyList())
         val labs = runCatching { labs().filter { com.devsecops.tracker.ui.labMatchesModule(it.module_code, moduleCode) } }
             .getOrDefault(emptyList())
-        val res = runCatching {
-            Resources.all().filter { it.module_code == moduleCode }
-                .sortedBy { when (it.kind) { "primary" -> 0; "official" -> 1; else -> 2 } }
-                .take(4)
-        }.getOrDefault(emptyList())
-        return PacketExtras(notes, labs, res)
+        return PacketExtras(notes, labs)
     }
 
     suspend fun gates(): List<GateRow> =

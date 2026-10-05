@@ -1,13 +1,13 @@
 package com.devsecops.tracker.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -16,7 +16,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.devsecops.tracker.data.ChatPlanRow
 import com.devsecops.tracker.data.Curriculum
 import com.devsecops.tracker.data.PacketExtras
-import com.devsecops.tracker.data.Resources
 import com.devsecops.tracker.data.SessionView
 
 // =========================================================================
@@ -37,14 +36,20 @@ fun StudyPacketCard(
 ) {
     val idx = currentSessionIndex(sessions)
     if (idx < 0) return
-    val sv = sessions[idx]
+    var sel by remember(sessions.size) { mutableIntStateOf(idx) }
+    val sv = sessions[sel.coerceIn(0, sessions.lastIndex)]
     val cs = MaterialTheme.colorScheme
     var extras by remember { mutableStateOf<PacketExtras?>(null) }
-    val uri = LocalUriHandler.current
     LaunchedEffect(chat.module_code) { extras = Curriculum.packetExtras(chat.module_code) }
 
     AppCard(modifier) {
-        MonoLabel("// study packet · aaj ka session", color = cs.primary)
+        MonoLabel("// study packet · agla unverified session", color = cs.primary)
+        Spacer(Modifier.height(Sp.xs))
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
+            sessions.forEachIndexed { i, x ->
+                FilterChip(selected = i == sel, onClick = { sel = i }, label = { Text("S${x.session.session_no}") })
+            }
+        }
         Spacer(Modifier.height(Sp.xs))
         Text("S${sv.session.session_no} · ${sv.session.title}", style = MaterialTheme.typography.titleMedium)
         Text(
@@ -78,18 +83,6 @@ fun StudyPacketCard(
             Spacer(Modifier.height(Sp.s))
             MonoLabel("labs")
             ex.labs.forEach { Text("• ${it.name}", style = MaterialTheme.typography.bodySmall) }
-        }
-        if (ex != null && ex.resources.isNotEmpty()) {
-            Spacer(Modifier.height(Sp.s))
-            MonoLabel("resources")
-            ex.resources.forEach { r ->
-                val link = Resources.openableUrl(r.url)
-                if (link != null) {
-                    TextButton(onClick = { runCatching { uri.openUri(link) } }, contentPadding = PaddingValues(0.dp)) {
-                        Text(r.title, maxLines = 1)
-                    }
-                } else Text("• ${r.title}", style = MaterialTheme.typography.bodySmall)
-            }
         }
         if (sv.total > 0) {
             Spacer(Modifier.height(Sp.m))
