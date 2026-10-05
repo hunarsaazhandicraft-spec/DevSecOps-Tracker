@@ -1,7 +1,7 @@
 # DevSecOps Tracker - build roadmap (one theme per round)
 
-Principles: personal use, never published, private GitHub only. Notion stays
-the source of truth; the app mirrors it. One theme per round, each tested on
+Principles: personal use, never published, private GitHub only. Supabase is
+the single source of truth (since 2026-09-30); the tutor writes, the app reads. One theme per round, each tested on
 the S24 before the next. Database changes are done by Claude via Supabase.
 
 - R22  UI polish [DONE, verified S24 + tablet]  (was: this round): compact title bars, clearer labels, overdue
@@ -48,3 +48,15 @@ Progress = Overview/Library/Insights (Library replaces the More tools grid).
 ## R33 (audit fixes, not yet built)
 Audit findings addressed in source: paged+cached reads that throw (Fetch.kt), single due rule (DueRules.kt), streak from yesterday, IST session_date, full backup, auth without sign-up fallback, edge-to-edge, notification permission, rememberSaveable forms, In-Progress case bug, Gate shows Notion result, logo + dark theme, unit tests.
 Still open: Notion->Supabase sync (needs "scheduled task banao, ha"), Supabase grants revoke + leaked-password protection + signups off (dashboard), real release keystore + minify, SHA-pinned Actions, git init + gitleaks, Learn Engine / packets / drills, must-cover checklist, lab tracker.
+
+## Status 2026-10-05 (audit R33 "still open" closed out)
+- DONE: SHA-pinned Actions, gitleaks + Trivy + build CI green; V3 look, responsive
+  nav, session bar, note reader (R43-R49); S24 install + login verified (R50);
+  Lab tracker, read-only, table lab_runs written by the tutor (R51);
+  Learn Engine = study packet + must-cover drill, read-only (R52-R53).
+- DROPPED: Notion -> Supabase sync (obsolete: Supabase is the source of truth).
+- ACCEPTED RISK (personal app, never published): real release keystore + R8/minify.
+  Revisit only if the APK is ever given to someone else.
+- DEFERRED: Realtime (new dependency; OnResume refresh is enough for now).
+- LEARNER TO DO (dashboard): Supabase grants revoke, leaked-password protection,
+  signups off.
