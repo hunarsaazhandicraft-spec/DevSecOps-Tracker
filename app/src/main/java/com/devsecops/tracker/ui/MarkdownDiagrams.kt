@@ -56,7 +56,7 @@ fun DiagramView(d: MdBlock.Diagram, modifier: Modifier = Modifier) {
         }
         if (d.title.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
-            MonoLabel("fig · ${d.title}")
+            MonoLabel("fig · ${d.title.replace(Regex("^(?i:fig)\\s*[·.:\\-]?\\s*"), "")}")
         }
     }
 }
