@@ -50,3 +50,6 @@ _backup*/
 _backup*.md
 Study tracker/
 Study tracker/
+
+# The Gradle wrapper jar must be committed so CI can run ./gradlew
+!gradle/wrapper/gradle-wrapper.jar
