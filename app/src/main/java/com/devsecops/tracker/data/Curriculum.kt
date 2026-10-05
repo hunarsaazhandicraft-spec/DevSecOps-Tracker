@@ -124,6 +124,32 @@ data class LabRow(
     val safety_notes: String? = null
 )
 
+// Tutor-written lab progress (table lab_runs, SELECT only for the app).
+@Serializable
+data class LabRun(
+    val id: Long,
+    val lab_id: String,
+    val status: String = "in_progress",   // in_progress | done | blocked
+    val level: String? = null,
+    val evidence: String? = null,
+    val evidence_url: String? = null,
+    val notes: String? = null,
+    val run_date: String? = null
+)
+
+// Newest run per lab (by run_date, then id).
+fun latestLabRuns(runs: List<LabRun>): Map<String, LabRun> =
+    runs.groupBy { it.lab_id }.mapValues { (_, v) ->
+        v.maxWith(compareBy<LabRun>({ it.run_date ?: "" }, { it.id }))
+    }
+
+fun labStatusLabel(run: LabRun?): String = when (run?.status) {
+    null -> "Not started"
+    "done" -> if (run.level.isNullOrBlank()) "Done" else "Done · ${run.level}"
+    "blocked" -> "Blocked"
+    else -> "In progress"
+}
+
 // Status of a module gate, derived from the tutor-written progress_items.
 data class GateStatus(val label: String, val passed: Boolean, val bestLevel: String?)
 
@@ -162,6 +188,14 @@ object Curriculum {
 
     suspend fun labs(): List<LabRow> =
         Supa.client.from("labs").select { order("id", Order.ASCENDING) }.decodeList()
+
+    // A missing table (DDL not run yet) or a failed read must not break the Labs list.
+    suspend fun labRuns(): List<LabRun> = runCatching {
+        Supa.client.from("lab_runs").select {
+            order("run_date", Order.DESCENDING)
+            order("id", Order.DESCENDING)
+        }.decodeList<LabRun>()
+    }.getOrDefault(emptyList())
 
     private fun levelNum(l: String?): Int = l?.trim()?.removePrefix("L")?.toIntOrNull() ?: 0
 

@@ -14,6 +14,9 @@ import com.devsecops.tracker.data.GateCheckRow
 import com.devsecops.tracker.data.GateRow
 import com.devsecops.tracker.data.GateStatus
 import com.devsecops.tracker.data.LabRow
+import com.devsecops.tracker.data.LabRun
+import com.devsecops.tracker.data.labStatusLabel
+import com.devsecops.tracker.data.latestLabRuns
 import com.devsecops.tracker.data.ProgressItem
 import kotlinx.coroutines.launch
 
@@ -21,7 +24,8 @@ private data class GatesLabsData(
     val gates: List<GateRow>,
     val checks: Map<String, List<GateCheckRow>>,
     val labs: List<LabRow>,
-    val progress: List<ProgressItem>
+    val progress: List<ProgressItem>,
+    val runs: List<LabRun> = emptyList()
 )
 
 private val KIND_ORDER = listOf("module", "phase", "project", "critical_skill", "capstone")
@@ -48,7 +52,7 @@ fun GatesLabsScreen(onBack: () -> Unit) {
             val c = Curriculum.gateChecks().groupBy { it.gate_id }
             val l = Curriculum.labs()
             val p = Fetch.progressItems()
-            GatesLabsData(g, c, l, p)
+            GatesLabsData(g, c, l, p, Curriculum.labRuns())
         }.onSuccess { data = it; err = null }
             .onFailure { err = it.message ?: "Could not load gates and labs" }
     }
@@ -150,13 +154,28 @@ private fun LabsList(d: GatesLabsData) {
                 )
             }
         }
+        val latest = latestLabRuns(d.runs)
+        item {
+            val done = d.labs.count { latest[it.id]?.status == "done" }
+            val going = d.labs.count { latest[it.id]?.status == "in_progress" }
+            MonoLabel("// $done done · $going in progress · ${d.labs.size} labs")
+        }
         items(d.labs, key = { it.id }) { l ->
             var open by remember(l.id) { mutableStateOf(false) }
+            val run = latest[l.id]
             AppCard(onClick = { open = !open }, padding = Sp.m) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(l.name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     l.module_code?.takeIf { it.isNotBlank() }?.let { Pill(it, cs.primary) }
                 }
+                MonoLabel(
+                    labStatusLabel(run),
+                    color = when (run?.status) {
+                        "done" -> cs.primary
+                        "blocked" -> cs.error
+                        else -> cs.onSurfaceVariant
+                    }
+                )
                 l.environment?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         it, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
@@ -164,6 +183,13 @@ private fun LabsList(d: GatesLabsData) {
                     )
                 }
                 if (open) {
+                    run?.let { r ->
+                        listOfNotNull(r.evidence, r.evidence_url, r.notes).filter { it.isNotBlank() }.forEach {
+                            Spacer(Modifier.height(Sp.s))
+                            Text("Evidence", style = MaterialTheme.typography.labelMedium, color = cs.primary)
+                            Text(it, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                     l.scope_note?.takeIf { it.isNotBlank() }?.let {
                         Spacer(Modifier.height(Sp.s))
                         Text("Scope", style = MaterialTheme.typography.labelMedium, color = cs.primary)
