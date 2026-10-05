@@ -175,7 +175,35 @@ enum class ChatState { DONE, CURRENT, UPCOMING, LOCKED }
 
 data class PathChat(val chat: ChatPlanRow, val state: ChatState)
 
+@Serializable private data class ModCode(val id: Int, val code: String? = null)
+
+// Extras for the study packet of one chat (all read-only).
+data class PacketExtras(
+    val notes: List<NoteMeta>,
+    val labs: List<LabRow>,
+    val resources: List<ResourceRow>
+)
+
 object Curriculum {
+
+    suspend fun packetExtras(moduleCode: String?): PacketExtras {
+        if (moduleCode.isNullOrBlank()) return PacketExtras(emptyList(), emptyList(), emptyList())
+        val modId = runCatching {
+            Supa.client.from("modules").select(Columns.list("id", "code")) {
+                filter { eq("code", moduleCode) }
+            }.decodeList<ModCode>().firstOrNull()?.id
+        }.getOrNull()
+        val notes = if (modId == null) emptyList() else
+            runCatching { Notes.list().filter { it.module_id == modId } }.getOrDefault(emptyList())
+        val labs = runCatching { labs().filter { com.devsecops.tracker.ui.labMatchesModule(it.module_code, moduleCode) } }
+            .getOrDefault(emptyList())
+        val res = runCatching {
+            Resources.all().filter { it.module_code == moduleCode }
+                .sortedBy { when (it.kind) { "primary" -> 0; "official" -> 1; else -> 2 } }
+                .take(4)
+        }.getOrDefault(emptyList())
+        return PacketExtras(notes, labs, res)
+    }
 
     suspend fun gates(): List<GateRow> =
         Supa.client.from("gates").select { order("id", Order.ASCENDING) }.decodeList()

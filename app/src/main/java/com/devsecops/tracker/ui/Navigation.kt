@@ -301,7 +301,8 @@ fun TrackerNavHost() {
                 ChatDetailScreen(
                     chatNo = entry.arguments?.getInt("no") ?: 1,
                     onBack = { navController.popBackStack() },
-                    onOpenDoc = { navController.navigate("doc?path=" + android.net.Uri.encode(it)) }
+                    onOpenDoc = { navController.navigate("doc?path=" + android.net.Uri.encode(it)) },
+                    onOpenNote = { navController.navigate("note/$it") }
                 )
             }
             composable(

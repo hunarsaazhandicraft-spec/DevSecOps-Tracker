@@ -118,3 +118,42 @@ fun sectionMatches(sections: List<NoteSection>, query: String): List<Int> {
         if (s.heading.contains(q, true) || s.body.contains(q, true)) i else null
     }
 }
+
+
+// ---- Learn Engine (drills + study packet) ---------------------------------
+
+// The session to study now: the first one with must-cover items not all
+// verified; if every session is done, the last one; -1 when there are none.
+fun currentSessionIndex(sessions: List<SessionView>): Int {
+    if (sessions.isEmpty()) return -1
+    val i = sessions.indexOfFirst { it.total > 0 && it.verified < it.total }
+    return if (i >= 0) i else sessions.lastIndex
+}
+
+private val MODULE_RX = Regex("M(\\d+)\\.(\\d+)")
+
+// Lab codes look like "M0.2", "M0.2\u2013M0.4" (range) or are empty.
+fun labMatchesModule(labCode: String?, moduleCode: String?): Boolean {
+    if (labCode.isNullOrBlank() || moduleCode.isNullOrBlank()) return false
+    val mod = MODULE_RX.find(moduleCode) ?: return false
+    val major = mod.groupValues[1].toInt()
+    val minor = mod.groupValues[2].toInt()
+    val found = MODULE_RX.findAll(labCode).map { it.groupValues[1].toInt() to it.groupValues[2].toInt() }.toList()
+    return when (found.size) {
+        0 -> false
+        1 -> found[0] == major to minor
+        else -> {
+            val (aM, aN) = found.first()
+            val (bM, bN) = found.last()
+            major in aM..bM && (major != aM || minor >= aN) && (major != bM || minor <= bN)
+        }
+    }
+}
+
+// Text the learner can paste into the tutor chat after a drill. known[i] is
+// true when the item was recalled without looking.
+fun drillSummary(title: String, items: List<String>, known: List<Boolean>): String {
+    val k = known.count { it }
+    val lines = items.mapIndexed { i, t -> (if (known.getOrNull(i) == true) "OK  " else "REDO") + " " + (i + 1) + ". " + t }
+    return "Drill: $title - $k/${items.size} recalled\n" + lines.joinToString("\n")
+}

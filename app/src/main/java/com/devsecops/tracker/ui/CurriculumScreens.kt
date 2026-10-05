@@ -225,13 +225,14 @@ private fun FileBadge(status: String) {
 // ---------------------------------------------------------- Chat detail ---
 
 @Composable
-fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Unit) {
+fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Unit, onOpenNote: (Long) -> Unit = {}) {
     var chat by remember { mutableStateOf<ChatPlanRow?>(null) }
     var sessions by remember { mutableStateOf<List<SessionView>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
+    var drill by remember { mutableStateOf<SessionView?>(null) }
 
     suspend fun load() {
         Fetch.safeCall {
@@ -243,6 +244,7 @@ fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Uni
     LaunchedEffect(chatNo) { load() }
     OnResume { scope.launch { load() } }
     LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }
+    drill?.let { DrillDialog(it) { drill = null } }
 
     Scaffold(topBar = { AppTitleBar(title = "Chat #$chatNo", onBack = onBack, subtitle = chat?.module_code) }) { pad ->
         val c = chat
@@ -287,6 +289,9 @@ fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Uni
                     }
                 }
                 val ss = sessions.orEmpty()
+                if (ss.isNotEmpty()) {
+                    item { StudyPacketCard(c, ss, onOpenNote = onOpenNote, onDrill = { drill = it }) }
+                }
                 if (ss.isEmpty()) {
                     item {
                         AppCard(Modifier.appear(2)) {
@@ -303,7 +308,7 @@ fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Uni
                         val v = ss.sumOf { it.verified }; val t = ss.sumOf { it.total }
                         GroupHeader("Sessions", "$v of $t must-cover items verified by the tutor · ✅ needs your own words at Hint 2 or lower")
                     }
-                    items(ss, key = { it.session.id }) { sv -> SessionCard(sv) }
+                    items(ss, key = { it.session.id }) { sv -> SessionCard(sv, onDrill = { drill = sv }) }
                 }
             }
         }
@@ -319,7 +324,7 @@ private fun InfoLine(label: String, value: String?) {
 }
 
 @Composable
-private fun SessionCard(sv: SessionView) {
+private fun SessionCard(sv: SessionView, onDrill: () -> Unit = {}) {
     val cs = MaterialTheme.colorScheme
     var open by remember { mutableStateOf(sv.verified < sv.total) }
     val recorded = sv.items.count { it.second != null }
@@ -347,6 +352,10 @@ private fun SessionCard(sv: SessionView) {
             Column(Modifier.padding(top = Sp.s)) {
                 sv.session.goal?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.padding(bottom = Sp.s)) }
                 sv.items.forEach { (item, cov) -> CoverageRowView(item.item_no, item.item, cov) }
+                if (sv.total > 0) {
+                    Spacer(Modifier.height(Sp.s))
+                    FilledTonalButton(onClick = onDrill) { Text("Drill") }
+                }
                 sv.session.done_when?.let {
                     Spacer(Modifier.height(Sp.s))
                     Text("CHECK", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
