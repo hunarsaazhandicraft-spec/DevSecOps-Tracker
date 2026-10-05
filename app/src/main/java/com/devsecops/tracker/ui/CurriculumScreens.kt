@@ -290,7 +290,7 @@ fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Uni
                 }
                 val ss = sessions.orEmpty()
                 if (ss.isNotEmpty()) {
-                    item { StudyPacketCard(c, ss, onOpenNote = onOpenNote, onDrill = { drill = it }) }
+                    item { StudyPacketCard(c, allSessions = ss, onOpenNote = onOpenNote, onDrill = { drill = it }) }
                 }
                 if (ss.isEmpty()) {
                     item {

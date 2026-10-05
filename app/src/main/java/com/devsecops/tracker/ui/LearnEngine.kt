@@ -29,11 +29,16 @@ private fun clean(s: String) = s.replace("**", "").replace("`", "")
 @Composable
 fun StudyPacketCard(
     chat: ChatPlanRow,
-    sessions: List<SessionView>,
+    allSessions: List<SessionView>,
     onOpenNote: (Long) -> Unit,
     onDrill: (SessionView) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Same module file can carry sessions of two module codes (M0.2 file has
+    // S4 and S6 under M0.3): order the chips by session number only.
+    val sessions = remember(allSessions) {
+        allSessions.sortedBy { it.session.session_no.takeWhile { c -> c.isDigit() }.toIntOrNull() ?: 99 }
+    }
     val idx = currentSessionIndex(sessions)
     if (idx < 0) return
     var sel by remember(sessions.size) { mutableIntStateOf(idx) }
