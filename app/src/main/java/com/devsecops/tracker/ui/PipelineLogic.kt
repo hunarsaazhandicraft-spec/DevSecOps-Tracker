@@ -67,3 +67,16 @@ fun chatStat(state: ChatState): Stat = when (state) {
     ChatState.UPCOMING -> Stat.QUEUED
     ChatState.LOCKED -> Stat.LOCKED
 }
+
+// Evidence level "L1".."L5" -> number (0 if unknown).
+fun levelNumber(level: String?): Int = level?.drop(1)?.toIntOrNull() ?: 0
+
+// Topic status in the module hub: L4+ = independent = PASS; L1-L3 = evidence
+// exists but not yet independent = PENDING; studied without a record = RUN
+// (assess it next); nothing yet = QUEUED.
+fun topicStat(level: String?, studied: Boolean): Stat = when {
+    levelNumber(level) >= 4 -> Stat.PASS
+    levelNumber(level) in 1..3 -> Stat.PENDING
+    studied -> Stat.RUN
+    else -> Stat.QUEUED
+}

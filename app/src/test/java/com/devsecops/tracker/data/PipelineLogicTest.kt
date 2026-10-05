@@ -3,7 +3,9 @@ package com.devsecops.tracker.data
 import com.devsecops.tracker.ui.SessionNode
 import com.devsecops.tracker.ui.Stat
 import com.devsecops.tracker.ui.chatStat
+import com.devsecops.tracker.ui.levelNumber
 import com.devsecops.tracker.ui.nextDayNumber
+import com.devsecops.tracker.ui.topicStat
 import com.devsecops.tracker.ui.pipelineStats
 import com.devsecops.tracker.ui.sessionNodes
 import org.junit.Assert.assertEquals
@@ -90,5 +92,15 @@ class PipelineLogicTest {
         assertEquals(Stat.RUN, chatStat(ChatState.CURRENT))
         assertEquals(Stat.QUEUED, chatStat(ChatState.UPCOMING))
         assertEquals(Stat.LOCKED, chatStat(ChatState.LOCKED))
+    }
+
+    @Test
+    fun topicStat_followsEvidenceLevel() {
+        assertEquals(4, levelNumber("L4"))
+        assertEquals(0, levelNumber(null))
+        assertEquals(Stat.PASS, topicStat("L4", true))
+        assertEquals(Stat.PENDING, topicStat("L2", true))
+        assertEquals(Stat.RUN, topicStat(null, true))
+        assertEquals(Stat.QUEUED, topicStat(null, false))
     }
 }

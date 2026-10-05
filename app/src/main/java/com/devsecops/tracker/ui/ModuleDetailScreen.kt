@@ -147,12 +147,16 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun SummaryCard(d: ModuleDetail, hours: Double, openWeak: Int) {
     val p = d.progress
-    AppCard(padding = 0.dp) {
+    GlowCard(glow = p?.status == "In progress", padding = 0.dp) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MonoLabel("// module · ${d.topics.size} topics")
             val pct = if (d.topics.isEmpty()) 0f else d.topics.count { t -> d.records.any { it.topic_id == t.id } }.toFloat() / d.topics.size
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(p?.status ?: "Not started", style = MaterialTheme.typography.titleLarge)
-                if (p?.mastery_level != null) LevelChip(p.mastery_level)
+                if (p?.mastery_level != null) {
+                    EvidenceLadder(levelNumber(p.mastery_level))
+                    LevelChip(p.mastery_level)
+                }
                 if (p?.target_level != null) {
                     Text("target ${p.target_level}", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -237,6 +241,8 @@ private fun TopicCard(topic: Topic, studied: Boolean, notes: List<String>, recor
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
+                StatGlyph(topicStat(latest?.level, studied), 22.dp)
+                Spacer(Modifier.width(10.dp))
                 Text(topic.name, Modifier.weight(1f), fontWeight = FontWeight.Medium)
                 when {
                     latest != null -> LevelChip(latest.level)
