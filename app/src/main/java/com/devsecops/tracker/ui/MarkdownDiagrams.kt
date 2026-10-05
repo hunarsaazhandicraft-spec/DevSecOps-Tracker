@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.sp
 //   ```nest <title>         label | detail                  (outer to inner, last = payload)
 //   ```steps <title>        title | detail                  (numbered chain)
 //   ```seq <title>          first line: actor | actor ; then: A -> B | label
+//   ```compare <title>      first line: (blank) | A | B ; then: row label | A cell | B cell
+//   ```bits <title>         field | bits                    (header layout, 32 bits per row)
+//   ```annot <title>        output line | what it means     (annotated terminal output)
 //   ```callout <kind>       attacker|defender|misconception|recap|warn|info
 
 @Composable
@@ -53,6 +56,9 @@ fun DiagramView(d: MdBlock.Diagram, modifier: Modifier = Modifier) {
             "nest" -> NestBody(d.rows, 0)
             "steps" -> StepsBody(d.rows)
             "seq" -> SeqBody(d.rows)
+            "compare" -> CompareBody(d.rows)
+            "bits" -> BitsBody(d.rows)
+            "annot" -> AnnotBody(d.rows)
         }
         if (d.title.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
@@ -193,6 +199,114 @@ private fun SeqBody(rows: List<List<String>>) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+// Packs "name | bits" rows into lines of at most 32 bits (a protocol header).
+fun bitRows(rows: List<List<String>>): List<List<Pair<String, Int>>> {
+    val lines = ArrayList<List<Pair<String, Int>>>()
+    var cur = ArrayList<Pair<String, Int>>()
+    var used = 0
+    for (r in rows) {
+        val name = r.getOrElse(0) { "" }
+        val bits = (r.getOrNull(1)?.trim()?.toIntOrNull() ?: 32).coerceIn(1, 32)
+        if (used + bits > 32) { lines.add(cur); cur = ArrayList(); used = 0 }
+        cur.add(name to bits); used += bits
+        if (used == 32) { lines.add(cur); cur = ArrayList(); used = 0 }
+    }
+    if (cur.isNotEmpty()) lines.add(cur)
+    return lines
+}
+
+@Composable
+private fun CompareBody(rows: List<List<String>>) {
+    if (rows.isEmpty()) return
+    val cs = MaterialTheme.colorScheme
+    val ac = accents()
+    val head = rows[0]
+    val n = head.size.coerceAtLeast(2)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (i in 0 until n) {
+                val c = if (i == 0) cs.onSurfaceVariant else ac[(i - 1) % ac.size]
+                Box(
+                    Modifier.weight(if (i == 0) 0.8f else 1f).clip(RoundedCornerShape(8.dp))
+                        .background(c.copy(alpha = 0.16f)).padding(8.dp)
+                ) {
+                    Text(head.getOrElse(i) { "" }, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c)
+                }
+            }
+        }
+        rows.drop(1).forEach { r ->
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (i in 0 until n) {
+                    Box(
+                        Modifier.weight(if (i == 0) 0.8f else 1f).fillMaxHeight().clip(RoundedCornerShape(8.dp))
+                            .background(cs.surfaceContainerHigh).padding(8.dp)
+                    ) {
+                        Text(
+                            inline(r.getOrElse(i) { "" }), style = MaterialTheme.typography.bodySmall,
+                            fontWeight = if (i == 0) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BitsBody(rows: List<List<String>>) {
+    val cs = MaterialTheme.colorScheme
+    val ac = accents()
+    var idx = 0
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(Modifier.fillMaxWidth()) {
+            Text("0", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = cs.onSurfaceVariant)
+            Spacer(Modifier.weight(1f))
+            Text("31", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = cs.onSurfaceVariant)
+        }
+        bitRows(rows).forEach { line ->
+            val used = line.sumOf { it.second }
+            Row(Modifier.fillMaxWidth().height(44.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                line.forEach { (name, bits) ->
+                    val c = ac[idx++ % ac.size]
+                    Box(
+                        Modifier.weight(bits.toFloat()).fillMaxHeight().clip(RoundedCornerShape(6.dp))
+                            .background(c.copy(alpha = 0.16f)).border(1.dp, c.copy(alpha = 0.6f), RoundedCornerShape(6.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (bits >= 4) "$name\n$bits" else name,
+                            Modifier.padding(horizontal = 2.dp), textAlign = TextAlign.Center,
+                            fontFamily = FontFamily.Monospace, fontSize = 10.sp, lineHeight = 12.sp,
+                            maxLines = 3, color = cs.onSurface
+                        )
+                    }
+                }
+                if (used < 32) Spacer(Modifier.weight((32 - used).toFloat()))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnnotBody(rows: List<List<String>>) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { r ->
+            Column {
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(cs.surfaceContainerHighest).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Text(r.getOrElse(0) { "" }, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = cs.primary)
+                }
+                r.getOrNull(1)?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        inline("\u21B3 $it"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp, top = 3.dp)
+                    )
                 }
             }
         }
