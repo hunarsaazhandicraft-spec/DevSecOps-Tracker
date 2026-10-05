@@ -62,4 +62,24 @@ class PipelineLogicTest {
         assertEquals(10, nextDayNumber("In progress", 10))
         assertEquals(10, nextDayNumber(null, 10))
     }
+
+    @Test
+    fun sessionNodes_sortsByNumberAndMarksSkippedUntouchedAsPending() {
+        val nodes = sessionNodes(
+            listOf(
+                view("6b", "verified", null),   // touched
+                view("1", null, null),          // untouched but before a touched one: skipped
+                view("8", null),                // first untouched after the last touched: RUN
+                view("4", "verified", "verified"),
+                view("9", null)
+            )
+        )
+        assertEquals(
+            listOf(
+                SessionNode("1", Stat.PENDING), SessionNode("4", Stat.PASS), SessionNode("6b", Stat.PENDING),
+                SessionNode("8", Stat.RUN), SessionNode("9", Stat.QUEUED)
+            ),
+            nodes
+        )
+    }
 }
