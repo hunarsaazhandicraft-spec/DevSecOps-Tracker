@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.sp
 //   ```compare <title>      first line: (blank) | A | B ; then: row label | A cell | B cell
 //   ```bits <title>         field | bits                    (header layout, 32 bits per row)
 //   ```annot <title>        output line | what it means     (annotated terminal output)
+//   ```path <title>         node | detail | label of the arrow to the NEXT node   (a packet's route)
+//   ```flow <title>         "? question | yes: ... | no: ..."  or  "> step / outcome"   (decision walk)
 //   ```callout <kind>       attacker|defender|misconception|recap|warn|info
 
 @Composable
@@ -59,6 +61,8 @@ fun DiagramView(d: MdBlock.Diagram, modifier: Modifier = Modifier) {
             "compare" -> CompareBody(d.rows)
             "bits" -> BitsBody(d.rows)
             "annot" -> AnnotBody(d.rows)
+            "path" -> PathBody(d.rows)
+            "flow" -> FlowBody(d.rows)
         }
         if (d.title.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
@@ -309,6 +313,96 @@ private fun AnnotBody(rows: List<List<String>>) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VArrow(label: String, color: Color, height: Dp = 30.dp) {
+    Row(Modifier.fillMaxWidth().height(height).padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Canvas(Modifier.width(14.dp).fillMaxHeight()) {
+            val x = size.width / 2
+            val sw = 2.dp.toPx()
+            val a = 5.dp.toPx()
+            drawLine(color, Offset(x, 0f), Offset(x, size.height), sw)
+            drawLine(color, Offset(x, size.height), Offset(x - a * 0.7f, size.height - a), sw)
+            drawLine(color, Offset(x, size.height), Offset(x + a * 0.7f, size.height - a), sw)
+        }
+        if (label.isNotBlank()) {
+            Spacer(Modifier.width(8.dp))
+            Text(label, fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = color)
+        }
+    }
+}
+
+@Composable
+private fun PathBody(rows: List<List<String>>) {
+    val cs = MaterialTheme.colorScheme
+    val ac = accents()
+    Column {
+        rows.forEachIndexed { i, r ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainerHigh).height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.width(3.dp).fillMaxHeight().background(ac[i % ac.size]))
+                Column(Modifier.weight(1f).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                    Text(r.getOrElse(0) { "" }, style = MaterialTheme.typography.titleSmall)
+                    r.getOrNull(1)?.takeIf { it.isNotBlank() }?.let {
+                        Text(inline(it), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                    }
+                }
+            }
+            if (i < rows.size - 1) VArrow(r.getOrElse(2) { "" }, cs.primary)
+        }
+    }
+}
+
+@Composable
+private fun FlowBody(rows: List<List<String>>) {
+    val cs = MaterialTheme.colorScheme
+    Column {
+        rows.forEachIndexed { i, r ->
+            val first = r.getOrElse(0) { "" }
+            val isQ = first.startsWith("?")
+            val text = first.removePrefix("?").removePrefix(">").trim()
+            if (isQ) {
+                Column(
+                    Modifier.fillMaxWidth().border(1.dp, cs.tertiary, RoundedCornerShape(12.dp)).padding(10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        MonoLabel("?", color = cs.tertiary)
+                        Spacer(Modifier.width(8.dp))
+                        Text(text, style = MaterialTheme.typography.titleSmall)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        r.drop(1).take(3).forEach { b ->
+                            val label = b.substringBefore(":", "").trim()
+                            val body = if (b.contains(":")) b.substringAfter(":").trim() else b
+                            val c = if (label.equals("yes", true) || label.equals("haan", true)) cs.primary else cs.error
+                            Column(
+                                Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(c.copy(alpha = 0.14f)).padding(8.dp)
+                            ) {
+                                if (label.isNotBlank()) MonoLabel(label, color = c)
+                                Text(inline(body), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainerHigh).padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        Text(inline(text), style = MaterialTheme.typography.titleSmall)
+                        r.getOrNull(1)?.takeIf { it.isNotBlank() }?.let {
+                            Text(inline(it), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+            if (i < rows.size - 1) VArrow("", cs.outline, 18.dp)
         }
     }
 }

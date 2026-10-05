@@ -30,4 +30,14 @@ class DiagramLayoutTest {
         val kinds = parseMarkdown(md).filterIsInstance<MdBlock.Diagram>().map { it.kind }
         assertEquals(listOf("compare", "bits", "annot"), kinds)
     }
+
+    @Test
+    fun parse_pathAndFlowBecomeDiagrams() {
+        val md = "```path Route\nLaptop | 192.168.1.5 | NAT\nRouter | 203.0.113.7 |\n```\n" +
+            "```flow Check\n? Port open? | yes: SYN-ACK | no: RST\n> Done\n```\n"
+        val d = parseMarkdown(md).filterIsInstance<MdBlock.Diagram>()
+        assertEquals(listOf("path", "flow"), d.map { it.kind })
+        assertEquals(2, d[0].rows.size)
+        assertEquals("? Port open?", d[1].rows[0][0])
+    }
 }

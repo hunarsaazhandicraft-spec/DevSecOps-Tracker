@@ -29,13 +29,13 @@ sealed class MdBlock {
     data class Bullet(val text: String, val marker: String) : MdBlock()
     data class Code(val text: String) : MdBlock()
     data class Table(val header: List<String>, val rows: List<List<String>>) : MdBlock()
-    // ```stack|nest|steps|seq|compare|bits|annot <title>  rows are "a | b | c" cells (see DIAGRAM_KINDS)
+    // ```stack|nest|steps|seq|compare|bits|annot|path|flow <title>  rows are "a | b | c" cells (see DIAGRAM_KINDS)
     data class Diagram(val kind: String, val title: String, val rows: List<List<String>>) : MdBlock()
     // ```callout attacker|defender|misconception|recap|warn|info
     data class Callout(val kind: String, val text: String) : MdBlock()
 }
 
-val DIAGRAM_KINDS = setOf("stack", "nest", "steps", "seq", "compare", "bits", "annot")
+val DIAGRAM_KINDS = setOf("stack", "nest", "steps", "seq", "compare", "bits", "annot", "path", "flow")
 
 private fun splitCells(line: String): List<String> = line.split("|").map { it.trim() }
 
