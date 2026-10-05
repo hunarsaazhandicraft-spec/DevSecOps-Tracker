@@ -2,6 +2,7 @@ package com.devsecops.tracker.data
 
 import com.devsecops.tracker.ui.SessionNode
 import com.devsecops.tracker.ui.Stat
+import com.devsecops.tracker.ui.chatStat
 import com.devsecops.tracker.ui.nextDayNumber
 import com.devsecops.tracker.ui.pipelineStats
 import com.devsecops.tracker.ui.sessionNodes
@@ -81,5 +82,13 @@ class PipelineLogicTest {
             ),
             nodes
         )
+    }
+
+    @Test
+    fun chatStat_mapsPathStatesToPipelineVocabulary() {
+        assertEquals(Stat.PASS, chatStat(ChatState.DONE))
+        assertEquals(Stat.RUN, chatStat(ChatState.CURRENT))
+        assertEquals(Stat.QUEUED, chatStat(ChatState.UPCOMING))
+        assertEquals(Stat.LOCKED, chatStat(ChatState.LOCKED))
     }
 }

@@ -123,31 +123,31 @@ fun PathScreen(onOpenChat: (Int) -> Unit) {
             ) {
                 item {
                     Column(Modifier.appear(0).padding(start = Sp.xs, bottom = Sp.m)) {
+                        MonoLabel("// $doneCount / ${list.size} chats · ${fmtHours(doneH)} of ${fmtHours(totalH)}")
                         Text("Your path", style = MaterialTheme.typography.headlineMedium)
-                        Text(
-                            "$doneCount of ${list.size} chats done · ${fmtHours(doneH)} of ${fmtHours(totalH)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                         Spacer(Modifier.height(Sp.s))
                         ThinBar(if (totalH > 0) (doneH / totalH).toFloat() else 0f)
                     }
                 }
                 if (current != null) {
                     item {
-                        AppCard(
-                            modifier = Modifier.appear(1).padding(bottom = Sp.l),
-                            onClick = { onOpenChat(current.chat.chat_no) },
-                            container = MaterialTheme.colorScheme.primaryContainer
+                        GlowCard(
+                            Modifier.appear(1).padding(bottom = Sp.l),
+                            glow = true,
+                            onClick = { onOpenChat(current.chat.chat_no) }
                         ) {
-                            Text("NOW · CHAT #${current.chat.chat_no}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text(current.chat.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            current.chat.deliverable?.let {
-                                Spacer(Modifier.height(Sp.xs))
-                                Text("Deliverable: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
+                                StatGlyph(Stat.RUN, 22.dp)
+                                MonoLabel("now · chat #${current.chat.chat_no}", color = MaterialTheme.colorScheme.primary)
                             }
                             Spacer(Modifier.height(Sp.s))
-                            Text("Open sessions & coverage →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(current.chat.title, style = MaterialTheme.typography.titleLarge)
+                            current.chat.deliverable?.let {
+                                Spacer(Modifier.height(Sp.xs))
+                                Text("Deliverable: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                            Spacer(Modifier.height(Sp.s))
+                            Text("Open sessions & coverage →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -179,7 +179,7 @@ private fun TrailRow(pc: PathChat, isLast: Boolean, onClick: () -> Unit) {
     ) {
         Box(Modifier.width(40.dp).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
             if (!isLast) {
-                Box(Modifier.padding(top = 30.dp).width(3.dp).fillMaxHeight().background(lineColor))
+                Box(Modifier.padding(top = 34.dp).width(3.dp).fillMaxHeight().background(lineColor))
             }
             TrailNode(pc.state, Modifier.padding(top = 10.dp))
         }
@@ -209,20 +209,7 @@ private fun TrailRow(pc: PathChat, isLast: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun TrailNode(state: ChatState, modifier: Modifier = Modifier) {
-    val cs = MaterialTheme.colorScheme
-    when (state) {
-        ChatState.DONE -> Icon(Icons.Filled.CheckCircle, "done", tint = cs.primary, modifier = modifier.size(22.dp).background(cs.surface, CircleShape))
-        ChatState.CURRENT -> {
-            val t = rememberInfiniteTransition(label = "node")
-            val s by t.animateFloat(0.7f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "nodePulse")
-            Box(modifier.size(22.dp), contentAlignment = Alignment.Center) {
-                Box(Modifier.size((22 * s).dp).clip(CircleShape).background(cs.primary.copy(alpha = 0.3f)))
-                Box(Modifier.size(12.dp).clip(CircleShape).background(cs.primary))
-            }
-        }
-        ChatState.LOCKED -> Icon(Icons.Filled.Lock, "locked", tint = cs.onSurfaceVariant, modifier = modifier.size(20.dp).background(cs.surface, CircleShape))
-        ChatState.UPCOMING -> Box(modifier.size(16.dp).clip(CircleShape).border(3.dp, cs.outlineVariant, CircleShape).background(cs.surface))
-    }
+    StatGlyph(chatStat(state), 24.dp, modifier)
 }
 
 @Composable

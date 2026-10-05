@@ -1,5 +1,6 @@
 package com.devsecops.tracker.ui
 
+import com.devsecops.tracker.data.ChatState
 import com.devsecops.tracker.data.SessionView
 
 // Pure logic behind the Today "pipeline" and the session strip. No Compose
@@ -58,3 +59,11 @@ fun sessionNodes(views: List<SessionView>): List<SessionNode> {
 // The tutor chat command for the next study day.
 fun nextDayNumber(status: String?, studyDay: Int): Int =
     if (status.equals("Done", ignoreCase = true)) studyDay + 1 else studyDay
+
+// Path trail uses the same status vocabulary as Today.
+fun chatStat(state: ChatState): Stat = when (state) {
+    ChatState.DONE -> Stat.PASS
+    ChatState.CURRENT -> Stat.RUN
+    ChatState.UPCOMING -> Stat.QUEUED
+    ChatState.LOCKED -> Stat.LOCKED
+}
