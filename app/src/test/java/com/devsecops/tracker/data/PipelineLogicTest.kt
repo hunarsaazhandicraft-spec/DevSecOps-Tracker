@@ -7,6 +7,9 @@ import com.devsecops.tracker.ui.levelNumber
 import com.devsecops.tracker.ui.nextDayNumber
 import com.devsecops.tracker.ui.sectionMatches
 import com.devsecops.tracker.ui.splitSections
+import com.devsecops.tracker.ui.sectionBody
+import com.devsecops.tracker.ui.sectionNumbers
+import com.devsecops.tracker.ui.diagramKindLabel
 import com.devsecops.tracker.ui.topicStat
 import com.devsecops.tracker.ui.pipelineStats
 import com.devsecops.tracker.ui.sessionNodes
@@ -120,5 +123,21 @@ class PipelineLogicTest {
         assertEquals(listOf(0), sectionMatches(s, "syn"))
         assertEquals(emptyList<Int>(), sectionMatches(s, "s"))
         assertEquals(listOf(1), sectionMatches(s, "nothing"))
+    }
+
+    @Test
+    fun sections_bodyDropsHeadingAndNumbersSkipPreamble() {
+        val s = splitSections("intro line\n\n## Ek line mein\nhello\n\n```flow\n## not a heading\n```\n\n## Kyun hai\nbecause")
+        assertEquals(listOf(0, 1, 2), sectionNumbers(s))
+        assertEquals("intro line", sectionBody(s[0]))
+        assertEquals("hello\n\n```flow\n## not a heading\n```", sectionBody(s[1]))
+        assertEquals("because", sectionBody(s[2]))
+    }
+
+    @Test
+    fun diagramKindLabel_knownAndUnknown() {
+        assertEquals("journey", diagramKindLabel("path"))
+        assertEquals("decision", diagramKindLabel("flow"))
+        assertEquals("zzz", diagramKindLabel("zzz"))
     }
 }

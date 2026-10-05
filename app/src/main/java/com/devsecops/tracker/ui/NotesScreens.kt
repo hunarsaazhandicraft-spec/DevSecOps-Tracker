@@ -162,7 +162,7 @@ fun NotesScreen(onBack: () -> Unit, onOpenNote: (Long) -> Unit) {
                                     if (n.part > 1) "Part ${n.part}" else null
                                 ).joinToString(" - ")
                                 if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                                Row(horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Sp.xs), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                     Pill(if (n.status == "reviewed") "Reviewed" else "Draft",
                                         if (n.status == "reviewed") cs.primary else cs.onSurfaceVariant)
                                     if (weakHere) Pill("Weak spot", cs.error)
@@ -253,10 +253,13 @@ fun NoteDetailScreen(noteId: Long, onBack: () -> Unit) {
                 var find by remember { mutableStateOf("") }
                 var matchPos by remember { mutableIntStateOf(0) }
                 val matches = remember(find, sections) { sectionMatches(sections, find) }
+                val nums = remember(sections) { sectionNumbers(sections) }
+                val closed = remember(n.content_md) { androidx.compose.runtime.mutableStateMapOf<Int, Boolean>() }
+                fun isOpen(i: Int) = closed[i] != true
                 LaunchedEffect(find) { matchPos = 0 }
                 // Items before the first section: pills, [weak card], outline, find.
                 val pre = 3 + (if (weak != null) 1 else 0)
-                fun jump(idx: Int) { scope.launch { listState.animateScrollToItem(pre + idx) } }
+                fun jump(idx: Int) { closed[idx] = false; scope.launch { listState.animateScrollToItem(pre + idx) } }
                 val wordsCard: @Composable () -> Unit = {
                     WordsCard(
                         words = words, onWords = { words = it }, offline = offline, busy = busy,
@@ -277,6 +280,11 @@ fun NoteDetailScreen(noteId: Long, onBack: () -> Unit) {
                                     Pill(if (n.status == "reviewed") "Reviewed" else "Draft", if (n.status == "reviewed") cs.primary else cs.onSurfaceVariant)
                                     if (weak != null) Pill("Weak spot", cs.error)
                                     if (n.part > 1) Pill("Part ${n.part}", cs.tertiary)
+                                    Spacer(Modifier.weight(1f))
+                                    val anyOpen = sections.indices.any { nums[it] > 0 && isOpen(it) }
+                                    TextButton(onClick = {
+                                        sections.indices.forEach { if (nums[it] > 0) closed[it] = anyOpen }
+                                    }) { Text(if (anyOpen) "Sab band" else "Sab kholo") }
                                 }
                             }
                             weak?.let { w ->
@@ -294,7 +302,7 @@ fun NoteDetailScreen(noteId: Long, onBack: () -> Unit) {
                                 val heads = sections.withIndex().filter { it.value.heading.isNotBlank() }
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Sp.xs)) {
                                     items(heads, key = { it.index }) { h ->
-                                        AssistChip(onClick = { jump(h.index) }, label = { Text(h.value.heading, maxLines = 1) })
+                                        AssistChip(onClick = { jump(h.index) }, label = { Text("${nums[h.index]}  ${h.value.heading}", maxLines = 1) })
                                     }
                                 }
                             }
@@ -314,7 +322,13 @@ fun NoteDetailScreen(noteId: Long, onBack: () -> Unit) {
                                     }
                                 }
                             }
-                            items(sections.size, key = { "s$it" }) { i -> MarkdownView(sections[i].body) }
+                            items(sections.size, key = { "s$it" }) { i ->
+                                val sec = sections[i]
+                                if (nums[i] == 0) MarkdownView(sec.body)
+                                else NoteSectionCard(nums[i], sec.heading, isOpen(i), { closed[i] = isOpen(i) }) {
+                                    MarkdownView(sectionBody(sec))
+                                }
+                            }
                             if (!twoPane) item { wordsCard() }
                             if (cards.isNotEmpty()) {
                                 item { GroupHeader("Revision cards (${cards.size})", "Sirf sawaal. Jawab Revise tab mein.") }

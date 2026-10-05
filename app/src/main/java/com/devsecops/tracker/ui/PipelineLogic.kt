@@ -109,6 +109,30 @@ fun splitSections(md: String): List<NoteSection> {
     return out
 }
 
+// Section body without its own "## heading" line (the card header shows the heading instead).
+fun sectionBody(s: NoteSection): String =
+    if (s.heading.isBlank()) s.body else s.body.lines().drop(1).joinToString("\n").trim('\n')
+
+// 1-based number for each headed section, 0 for the unheaded preamble.
+fun sectionNumbers(sections: List<NoteSection>): List<Int> {
+    var c = 0
+    return sections.map { if (it.heading.isBlank()) 0 else ++c }
+}
+
+// Short Hinglish-neutral label shown on top of each diagram.
+fun diagramKindLabel(kind: String): String = when (kind) {
+    "stack" -> "layers"
+    "nest" -> "containment"
+    "steps" -> "steps"
+    "seq" -> "sequence"
+    "compare" -> "compare"
+    "bits" -> "bit layout"
+    "annot" -> "real output"
+    "path" -> "journey"
+    "flow" -> "decision"
+    else -> kind
+}
+
 // Indexes of sections whose heading or body contains the query (case-insensitive).
 // Fewer than 2 characters matches nothing.
 fun sectionMatches(sections: List<NoteSection>, query: String): List<Int> {

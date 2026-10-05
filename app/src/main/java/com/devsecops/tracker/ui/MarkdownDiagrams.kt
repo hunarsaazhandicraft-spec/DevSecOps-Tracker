@@ -48,11 +48,20 @@ private fun accents(): List<Color> {
 fun DiagramView(d: MdBlock.Diagram, modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
-    val summary = "Diagram ${d.title}: " + d.rows.joinToString("; ") { it.joinToString(" - ") }
+    val summary = "Diagram ${diagramKindLabel(d.kind)} ${d.title}: " + d.rows.joinToString("; ") { it.joinToString(" - ") }
     Column(
         modifier.fillMaxWidth().semantics { contentDescription = summary }
             .clip(shape).background(cs.surfaceContainer).border(1.dp, cs.outlineVariant, shape).padding(12.dp)
     ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(cs.primary))
+            MonoLabel("diagram · ${diagramKindLabel(d.kind)}", color = cs.primary)
+        }
+        val cap = d.title.replace(Regex("^(?i:fig)\\s*[·.:\\-]?\\s*"), "")
+        if (cap.isNotBlank()) {
+            Text(cap, Modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(10.dp))
         when (d.kind) {
             "stack" -> StackBody(d.rows)
             "nest" -> NestBody(d.rows, 0)
@@ -63,10 +72,6 @@ fun DiagramView(d: MdBlock.Diagram, modifier: Modifier = Modifier) {
             "annot" -> AnnotBody(d.rows)
             "path" -> PathBody(d.rows)
             "flow" -> FlowBody(d.rows)
-        }
-        if (d.title.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            MonoLabel("fig · ${d.title.replace(Regex("^(?i:fig)\\s*[·.:\\-]?\\s*"), "")}")
         }
     }
 }

@@ -175,37 +175,51 @@ fun MarkdownView(md: String, modifier: Modifier = Modifier) {
 private fun BlockView(b: MdBlock) {
     val cs = MaterialTheme.colorScheme
     when (b) {
-        is MdBlock.Heading -> Text(
-            inline(b.text),
-            style = when (b.level) {
-                1 -> MaterialTheme.typography.headlineSmall
-                2 -> MaterialTheme.typography.titleLarge
-                else -> MaterialTheme.typography.titleMedium
-            },
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = if (b.level <= 2) Sp.s else Sp.xs)
-        )
-        is MdBlock.Para -> Text(inline(b.text), style = MaterialTheme.typography.bodyMedium)
-        is MdBlock.Bullet -> Row {
-            Text(b.marker, Modifier.width(24.dp), style = MaterialTheme.typography.bodyMedium, color = cs.primary)
-            Text(inline(b.text), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        }
-        is MdBlock.Code -> Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                .background(cs.surfaceContainerHighest).horizontalScroll(rememberScrollState()).padding(Sp.m)
+        is MdBlock.Heading -> if (b.level >= 3) Row(
+            Modifier.padding(top = Sp.s), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Sp.s)
         ) {
-            Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp, softWrap = false)
+            Box(Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(cs.primary))
+            Text(inline(b.text), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        } else Text(
+            inline(b.text),
+            style = if (b.level == 1) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = Sp.s)
+        )
+        is MdBlock.Para -> Text(inline(b.text), style = MaterialTheme.typography.bodyMedium, lineHeight = 23.sp)
+        is MdBlock.Bullet -> Row(Modifier.padding(start = Sp.xs)) {
+            Text(if (b.marker == "-" || b.marker == "*") "•" else b.marker, Modifier.width(24.dp), style = MaterialTheme.typography.bodyMedium, color = cs.primary, fontWeight = FontWeight.Bold)
+            Text(inline(b.text), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, lineHeight = 22.sp)
+        }
+        is MdBlock.Code -> Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainerHighest)
+        ) {
+            Box(Modifier.fillMaxWidth().background(cs.surfaceContainerHigh).padding(horizontal = Sp.m, vertical = 5.dp)) {
+                MonoLabel("terminal / code")
+            }
+            Box(Modifier.horizontalScroll(rememberScrollState()).padding(Sp.m)) {
+                Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 18.sp, softWrap = false)
+            }
         }
         is MdBlock.Table -> Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer).padding(Sp.s)
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cs.surfaceContainer)
         ) {
-            Row(Modifier.fillMaxWidth()) {
-                b.header.forEach { Text(inline(it), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+            Row(Modifier.fillMaxWidth().background(cs.primaryContainer.copy(alpha = 0.6f)).padding(horizontal = Sp.s, vertical = Sp.s)) {
+                b.header.forEach { Text(inline(it), Modifier.weight(1f).padding(horizontal = Sp.xs), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = cs.onPrimaryContainer) }
             }
-            b.rows.forEach { r ->
-                Row(Modifier.fillMaxWidth()) {
+            b.rows.forEachIndexed { ri, r ->
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                        .background(if (ri % 2 == 1) cs.surfaceContainerHigh.copy(alpha = 0.6f) else androidx.compose.ui.graphics.Color.Transparent)
+                        .padding(horizontal = Sp.s, vertical = 6.dp)
+                ) {
                     b.header.indices.forEach { c ->
-                        Text(inline(r.getOrElse(c) { "" }), Modifier.weight(1f).padding(Sp.xs), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            inline(r.getOrElse(c) { "" }), Modifier.weight(1f).padding(horizontal = Sp.xs),
+                            style = MaterialTheme.typography.bodySmall, lineHeight = 18.sp,
+                            fontWeight = if (c == 0) FontWeight.SemiBold else FontWeight.Normal
+                        )
                     }
                 }
             }
