@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.devsecops.tracker.data.Extras
 import com.devsecops.tracker.data.Repository
@@ -25,8 +27,6 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
     var topicNames by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var moduleNames by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var tab by rememberSaveable { mutableStateOf(0) }
-    var confirmId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var actionErr by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -51,26 +51,6 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
     val cleared = all.filter { it.cleared_at != null }
     val overdue = open.count { isOverdue(it.revisit_date) }
 
-    confirmId?.let { id ->
-        AlertDialog(
-            onDismissRequest = { confirmId = null },
-            title = { Text("Mark as cleared?") },
-            text = { Text("Mark this weak spot as cleared? Only do this after an unaided re-check.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmId = null
-                    actionErr = null
-                    scope.launch {
-                        catching { Repository.clearWeakSpot(id) }
-                            .onSuccess { refresh() }
-                            .onFailure { actionErr = "Couldn't clear it: " + (it.message ?: "unknown error") }
-                    }
-                }) { Text("Clear") }
-            },
-            dismissButton = { TextButton(onClick = { confirmId = null }) { Text("Cancel") } }
-        )
-    }
-
     Scaffold(
         topBar = {
             AppTitleBar(
@@ -94,14 +74,6 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
                 tab, { tab = it },
                 Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
-            actionErr?.let {
-                Text(
-                    it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
             when {
                 loading -> SkeletonList(3)
                 error != null -> ErrorBlock(error ?: "", { scope.launch { refresh() } }, Modifier.padding(16.dp))
@@ -125,8 +97,7 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
                                 moduleLabel = listOfNotNull(
                                     ws.module_id?.let { moduleNames[it] },
                                     topicNames[ws.topic_id]
-                                ).joinToString(" · "),
-                                onClear = { confirmId = ws.id }
+                                ).joinToString(" · ")
                             )
                         }
                     }
@@ -137,7 +108,10 @@ fun WeakSpotsScreen(onBack: () -> Unit, onAddWeakSpot: () -> Unit, showBackButto
 }
 
 @Composable
-private fun WeakSpotCard(ws: WeakSpot, moduleLabel: String, modifier: Modifier = Modifier, onClear: () -> Unit) {
+private fun WeakSpotCard(ws: WeakSpot, moduleLabel: String, modifier: Modifier = Modifier) {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) { if (copied) { kotlinx.coroutines.delay(1800); copied = false } }
     val cs = MaterialTheme.colorScheme
     val cleared = ws.cleared_at != null
     val late = !cleared && isOverdue(ws.revisit_date)
@@ -185,7 +159,17 @@ private fun WeakSpotCard(ws: WeakSpot, moduleLabel: String, modifier: Modifier =
                 color = if (late) cs.error else cs.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
-            if (!cleared) FilledTonalButton(onClick = onClear) { Text("Mark cleared") }
+            if (!cleared) FilledTonalButton(onClick = {
+                clipboard.setText(AnnotatedString("Re-test: " + cleanTitle(ws.title ?: ws.reason)))
+                copied = true
+            }) { Text(if (copied) "Copied" else "Copy re-test") }
+        }
+        if (!cleared) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Clear tab hota hai jab tutor chat mein unaided re-test pass ho. Copy karke wahan bhejo.",
+                style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant
+            )
         }
     }
 }

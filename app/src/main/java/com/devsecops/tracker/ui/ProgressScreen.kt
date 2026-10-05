@@ -96,7 +96,7 @@ private fun OverviewContent(d: ProgressData, onOpen: (String) -> Unit) {
         StatTile(formatMinutes(d.totalMinutes), "total time", Modifier.weight(1f))
         AppCard(modifier = Modifier.weight(1f), padding = Sp.m) {
             AnimatedCount(d.totalSessions, style = MaterialTheme.typography.headlineSmall)
-            Text("sessions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            MonoLabel("sessions")
         }
         AppCard(modifier = Modifier.weight(1f), padding = Sp.m) {
             Row(verticalAlignment = Alignment.Bottom) {
@@ -107,7 +107,7 @@ private fun OverviewContent(d: ProgressData, onOpen: (String) -> Unit) {
                 )
                 Text("d", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
             }
-            Text("streak", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            MonoLabel("streak")
         }
     }
     MemoryRingCard(onOpenFading = { onOpen("fading") })
@@ -175,7 +175,7 @@ private fun LibraryContent(counts: LibraryCounts?, onOpen: (String) -> Unit) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(t.title, style = MaterialTheme.typography.titleSmall)
-                    Text(t.unit, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    MonoLabel(t.unit)
                 }
             }
             if (row.size == 1) Spacer(Modifier.weight(1f))

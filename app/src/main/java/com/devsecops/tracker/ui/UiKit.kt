@@ -116,7 +116,7 @@ fun SegTabs(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modif
 fun StatTile(value: String, label: String, modifier: Modifier = Modifier, accent: Color = MaterialTheme.colorScheme.onSurface) {
     AppCard(modifier = modifier, padding = Sp.m) {
         Text(value, style = MaterialTheme.typography.headlineSmall, color = accent, maxLines = 1)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MonoLabel(label)
     }
 }
 
