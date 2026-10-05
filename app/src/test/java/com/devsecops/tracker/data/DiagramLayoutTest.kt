@@ -15,11 +15,11 @@ class DiagramLayoutTest {
             listOf("Off", "4"), listOf("Rsv", "6"), listOf("Flags", "6"), listOf("Win", "16")
         )
         val lines = bitRows(rows)
-        assertEquals(4, lines.size)
+        assertEquals(3, lines.size)
         assertEquals(listOf("Src port" to 16, "Dst port" to 16), lines[0])
         assertEquals(listOf("Seq" to 32), lines[1])
         assertEquals(32, lines[2].sumOf { it.second })
-        assertEquals(listOf("Win" to 16), lines[3])
+        assertEquals(listOf("Off" to 4, "Rsv" to 6, "Flags" to 6, "Win" to 16), lines[2])
     }
 
     @Test
