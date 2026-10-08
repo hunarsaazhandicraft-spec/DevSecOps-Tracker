@@ -40,6 +40,7 @@ fun PaceCard(modifier: Modifier = Modifier, refreshKey: Int = 0) {
     val week = paceSummary(r, today, 7)
     if (week.days == 0) return
     val replan = needsReplan(r, today)
+    val two = paceSummary(r, today, 14)
     AppCard(modifier, padding = Sp.m) {
         MonoLabel("// pace · last 7 days")
         Text(
@@ -53,7 +54,7 @@ fun PaceCard(modifier: Modifier = Modifier, refreshKey: Int = 0) {
         if (replan) {
             Spacer(Modifier.height(Sp.xs))
             Text(
-                "2 hafte se plan ka $REPLAN_PCT% se kam: tutor se replan karwao.",
+                "Pichhle 14 din me plan ka ${two.pct}% hi hua (limit $REPLAN_PCT%): tutor se replan karwao.",
                 style = MaterialTheme.typography.labelLarge, color = cs.error
             )
         }
@@ -99,10 +100,10 @@ const val DRILL_URL = "https://claude.ai/artifact/JBDqbM5BGntXWRYSkfGyy4"
 
 // Network Drills live in their own artifact database; the app only links to it.
 @Composable
-fun DrillLinkCard(modifier: Modifier = Modifier) {
+fun DrillLinkCard(modifier: Modifier = Modifier, padding: androidx.compose.ui.unit.Dp = Sp.m) {
     val cs = MaterialTheme.colorScheme
     val uri = LocalUriHandler.current
-    AppCard(modifier, onClick = { runCatching { uri.openUri(DRILL_URL) } }, padding = Sp.m) {
+    AppCard(modifier, onClick = { runCatching { uri.openUri(DRILL_URL) } }, padding = padding) {
         Text("Network Drills", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(
             "Practice artifact (browser me khulta hai). Iska data alag hai; app isse nahi padhti.",

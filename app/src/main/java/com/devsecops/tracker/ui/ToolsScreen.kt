@@ -60,6 +60,5 @@ fun ToolsScreen(onBack: () -> Unit, onOpen: (String) -> Unit) {
                 }
             }
         }
-        DrillLinkCard()
     }
 }

@@ -209,6 +209,7 @@ private fun LibraryContent(counts: LibraryCounts?, onOpen: (String) -> Unit) {
         Text("Plan my day", style = MaterialTheme.typography.titleSmall)
         Text("Pick the time you have and get an ordered plan", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+    DrillLinkCard(padding = 16.dp)
 }
 
 @Composable
