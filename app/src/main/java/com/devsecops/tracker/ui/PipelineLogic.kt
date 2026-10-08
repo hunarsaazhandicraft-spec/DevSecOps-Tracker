@@ -45,7 +45,7 @@ fun sessionNodes(views: List<SessionView>): List<SessionNode> {
     return sorted.mapIndexed { i, v ->
         val redo = v.items.any { it.second?.status == "redo" }
         val stat = when {
-            v.total > 0 && v.verified == v.total -> Stat.PASS
+            v.isDone -> Stat.PASS
             redo -> Stat.FAIL
             touched[i] -> Stat.PENDING
             i < lastTouched -> Stat.PENDING
@@ -150,7 +150,7 @@ fun sectionMatches(sections: List<NoteSection>, query: String): List<Int> {
 // verified; if every session is done, the last one; -1 when there are none.
 fun currentSessionIndex(sessions: List<SessionView>): Int {
     if (sessions.isEmpty()) return -1
-    val i = sessions.indexOfFirst { it.total > 0 && it.verified < it.total }
+    val i = sessions.indexOfFirst { it.total > 0 && !it.isDone }
     return if (i >= 0) i else sessions.lastIndex
 }
 

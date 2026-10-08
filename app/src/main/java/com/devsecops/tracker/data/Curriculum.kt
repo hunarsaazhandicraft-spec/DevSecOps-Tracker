@@ -48,14 +48,15 @@ data class MustCoverItem(
     val what_breaks: String? = null,
     val attacker_view: String? = null,
     val defender_view: String? = null,
-    val misconception: String? = null
+    val misconception: String? = null,
+    val tier: String? = null          // CORE | WORKING | AWARENESS; null until the tutor fills it (treated as CORE)
 )
 
 @Serializable
 data class CoverageEntry(
     val id: Long,
     val must_cover_id: Long,
-    val status: String,              // verified | redo | not_taught
+    val status: String,              // verified | guided | redo | not_taught
     val learner_quote: String? = null,
     val highest_hint: Int? = null,
     val recorded_at: String? = null
@@ -168,7 +169,20 @@ data class SessionView(
     val items: List<Pair<MustCoverItem, CoverageEntry?>>
 ) {
     val verified: Int get() = items.count { it.second?.status == "verified" }
+    val guided: Int get() = items.count { it.second?.status == "guided" }
     val total: Int get() = items.size
+
+    // Done-definition (05_MASTERY_SYSTEM): every CORE verified, at least 80% of
+    // WORKING verified, every AWARENESS recognized (verified). Unknown tier = CORE.
+    val isDone: Boolean get() {
+        if (total == 0) return false
+        fun ver(l: List<Pair<MustCoverItem, CoverageEntry?>>) = l.count { it.second?.status == "verified" }
+        val core = items.filter { (it.first.tier ?: "CORE") == "CORE" }
+        val working = items.filter { it.first.tier == "WORKING" }
+        val aware = items.filter { it.first.tier == "AWARENESS" }
+        return ver(core) == core.size && ver(aware) == aware.size &&
+            (working.isEmpty() || ver(working) * 5 >= working.size * 4)
+    }
 }
 
 enum class ChatState { DONE, CURRENT, UPCOMING, LOCKED }

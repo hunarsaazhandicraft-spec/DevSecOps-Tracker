@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -307,7 +308,7 @@ fun ChatDetailScreen(chatNo: Int, onBack: () -> Unit, onOpenDoc: (String) -> Uni
                 } else {
                     item {
                         val v = ss.sumOf { it.verified }; val t = ss.sumOf { it.total }
-                        GroupHeader("Sessions", "$v of $t must-cover items verified by the tutor · ✅ needs your own words at Hint 2 or lower")
+                        GroupHeader("Sessions", "$v of $t must-cover items verified by the tutor · ✅ needs your own words at Hint 2 or lower · 🟡 guided at Hint 3")
                     }
                     items(ss, key = { it.session.id }) { sv -> SessionCard(sv, onDrill = { drill = sv }) }
                 }
@@ -327,7 +328,7 @@ private fun InfoLine(label: String, value: String?) {
 @Composable
 private fun SessionCard(sv: SessionView, onDrill: () -> Unit = {}) {
     val cs = MaterialTheme.colorScheme
-    var open by remember { mutableStateOf(sv.verified < sv.total) }
+    var open by remember { mutableStateOf(!sv.isDone) }
     val recorded = sv.items.count { it.second != null }
     AppCard(onClick = { open = !open }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,12 +340,12 @@ private fun SessionCard(sv: SessionView, onDrill: () -> Unit = {}) {
         }
         Spacer(Modifier.height(Sp.s))
         if (sv.total > 0) {
-            ThinBar(sv.verified.toFloat() / sv.total, if (sv.verified == sv.total) cs.primary else cs.tertiary)
+            ThinBar(sv.verified.toFloat() / sv.total, if (sv.isDone) cs.primary else cs.tertiary)
             Spacer(Modifier.height(Sp.xs))
         }
         Text(
             buildString {
-                append(if (sv.total == 0) "No must-cover list in the file" else "${sv.verified}/${sv.total} ✅ · $recorded recorded")
+                append(if (sv.total == 0) "No must-cover list in the file" else "${sv.verified}/${sv.total} ✅" + (if (sv.guided > 0) " · ${sv.guided} 🟡" else "") + " · $recorded recorded")
                 sv.session.min_minutes?.let { append(" · min ${it / 60}h${if (it % 60 != 0) " ${it % 60}m" else ""}") }
             },
             style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant
@@ -352,7 +353,7 @@ private fun SessionCard(sv: SessionView, onDrill: () -> Unit = {}) {
         AnimatedVisibility(open) {
             Column(Modifier.padding(top = Sp.s)) {
                 sv.session.goal?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, modifier = Modifier.padding(bottom = Sp.s)) }
-                sv.items.forEach { (item, cov) -> CoverageRowView(item.item_no, item.item, cov) }
+                sv.items.forEach { (item, cov) -> CoverageRowView(item.item_no, item.item, cov, item.tier) }
                 if (sv.total > 0) {
                     Spacer(Modifier.height(Sp.s))
                     FilledTonalButton(onClick = onDrill) { Text("Drill") }
@@ -372,10 +373,11 @@ private fun SessionCard(sv: SessionView, onDrill: () -> Unit = {}) {
 }
 
 @Composable
-private fun CoverageRowView(no: Int, text: String, cov: CoverageEntry?) {
+private fun CoverageRowView(no: Int, text: String, cov: CoverageEntry?, tier: String? = null) {
     val cs = MaterialTheme.colorScheme
     val (icon, tint, label) = when (cov?.status) {
         "verified" -> Triple(Icons.Filled.CheckCircle, cs.primary, "verified")
+        "guided" -> Triple(Icons.Filled.Info, cs.secondary, "guided 🟡 (Hint 3)")
         "redo" -> Triple(Icons.Filled.Autorenew, cs.tertiary, "re-check")
         "not_taught" -> Triple(Icons.Filled.Cancel, cs.error, "not taught")
         else -> Triple(Icons.Filled.RadioButtonUnchecked, cs.onSurfaceVariant, "not recorded")
@@ -384,7 +386,10 @@ private fun CoverageRowView(no: Int, text: String, cov: CoverageEntry?) {
         Icon(icon, label, tint = tint, modifier = Modifier.size(20.dp).padding(top = 1.dp))
         Spacer(Modifier.width(Sp.s))
         Column(Modifier.weight(1f)) {
-            Text("$no. ${text.replace("**", "").replace("`", "")}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                (tier?.let { "[$it] " } ?: "") + "$no. ${text.replace("**", "").replace("`", "")}",
+                style = MaterialTheme.typography.bodyMedium
+            )
             if (!cov?.learner_quote.isNullOrBlank()) {
                 Text("“${cov!!.learner_quote}”", style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic, color = cs.onSurfaceVariant)
             }
