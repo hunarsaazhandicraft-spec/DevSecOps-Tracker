@@ -54,6 +54,7 @@ private val ERROR_TAGS = listOf(
 @Composable
 fun QuizScreen(onBack: () -> Unit, onAddCard: () -> Unit, showBackButton: Boolean = true) {
     var queue by remember { mutableStateOf<List<DueCard>>(emptyList()) }
+    var overdue by remember { mutableStateOf(0) }
     var index by remember { mutableStateOf(0) }
     var revealed by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
@@ -69,8 +70,8 @@ fun QuizScreen(onBack: () -> Unit, onAddCard: () -> Unit, showBackButton: Boolea
         submitError = null
         index = 0
         if (!keepReveal) revealed = false
-        catching { Repository.loadDueCards() }
-            .onSuccess { queue = it }
+        catching { Repository.loadRevise() }
+            .onSuccess { queue = it.queue; overdue = it.overdue }
             .onFailure { error = it.message ?: "Load failed" }
         loading = false
     }
@@ -117,6 +118,25 @@ fun QuizScreen(onBack: () -> Unit, onAddCard: () -> Unit, showBackButton: Boolea
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!loading && error == null && overdue > 0) {
+                val debt = com.devsecops.tracker.data.DueRules.isDebt(overdue)
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (debt) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainer)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        if (debt) "Review debt: $overdue cards overdue" else "$overdue cards overdue",
+                        style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        (if (debt) "${com.devsecops.tracker.data.DueRules.DEBT_THRESHOLD}+ overdue = naya CORE content tab tak block: pehle cards saaf karo. " else "") +
+                            "Aaj ka cap ${com.devsecops.tracker.data.DueRules.MAX_REVIEWS_PER_DAY} cards, sabse purane pehle.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
             if (!loading && error == null && queue.isNotEmpty()) {
                 ThinBar(
                     (index.coerceAtMost(queue.size)).toFloat() / queue.size,

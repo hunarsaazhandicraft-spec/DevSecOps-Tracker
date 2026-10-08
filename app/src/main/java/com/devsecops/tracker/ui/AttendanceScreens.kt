@@ -105,6 +105,7 @@ fun AttendanceScreen(onBack: () -> Unit) {
         act {
             val r = Attendance.endDay(c, n)
             msg = "Day ended: ${"%.2f".format(r.hours)} h, confidence $c/5" +
+                (if (com.devsecops.tracker.data.overSoftCap(r.hours)) " - ${com.devsecops.tracker.data.SOFT_CAP_HOURS.toInt()} h soft cap se zyada: kal halka rakho." else "") +
                 if (r.loggedToTutor) " (also saved to today's daily log)"
                 else " - NOT copied to the tutor daily log (no log row for today yet, or the write failed)"
         }

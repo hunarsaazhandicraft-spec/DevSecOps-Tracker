@@ -31,6 +31,11 @@ object DueRules {
 
     const val MAX_NEW_CARDS_PER_DAY = 5
 
+    // Daily review cap (tutor rule: max 15 cards, most overdue first) and the
+    // overdue count above which new CORE content is blocked ("review debt").
+    const val MAX_REVIEWS_PER_DAY = 15
+    const val DEBT_THRESHOLD = 30
+
     fun studiedTopicIds(
         sessionTopicIds: Iterable<Int>,
         masteryTopicIds: Iterable<Int>,
@@ -61,6 +66,28 @@ object DueRules {
     fun newCardsAllowed(reviews: List<RevisionReview>, today: LocalDate): Int =
         (MAX_NEW_CARDS_PER_DAY - newCardsIntroducedOn(reviews, today)).coerceAtLeast(0)
 
+    // Review rows saved today (local date); they use up today's cap.
+    fun reviewsDoneOn(reviews: List<RevisionReview>, today: LocalDate): Int =
+        reviews.count { localDateStringOf(it.reviewed_at) == today.toString() }
+
+    fun reviewBudget(reviews: List<RevisionReview>, today: LocalDate): Int =
+        (MAX_REVIEWS_PER_DAY - reviewsDoneOn(reviews, today)).coerceAtLeast(0)
+
+    // Studied-topic cards whose due date is strictly before today (uncapped).
+    fun overdueCount(
+        cards: List<RevisionCard>,
+        reviews: List<RevisionReview>,
+        studiedTopicIds: Set<Int>,
+        today: LocalDate
+    ): Int {
+        val latest = latestReviewByCard(reviews)
+        return cards.count {
+            it.topic_id in studiedTopicIds && dueDateString(it, latest[it.id], today) < today.toString()
+        }
+    }
+
+    fun isDebt(overdue: Int): Boolean = overdue > DEBT_THRESHOLD
+
     // Ids of the cards Revise would show today, in Revise order.
     fun dueCardIds(
         cards: List<RevisionCard>,
@@ -78,6 +105,6 @@ object DueRules {
         val fresh = due.filter { latest[it.id] == null }
             .sortedBy { it.due_date ?: "" }
             .take(newCardsAllowed(reviews, today))
-        return (reviewed + fresh).map { it.id }
+        return (reviewed + fresh).take(reviewBudget(reviews, today)).map { it.id }
     }
 }

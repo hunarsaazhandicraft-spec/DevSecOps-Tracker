@@ -250,6 +250,8 @@ private fun HomeContent(
 
         item { TutorLogCard(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(3)) }
 
+        item { PaceCard(modifier = Modifier.appear(3), refreshKey = refreshKey) }
+
         // Smart pick (time and energy), collapsed by default
         item {
             GlowCard(onClick = { smartOpen = !smartOpen }, padding = 14.dp, modifier = Modifier.appear(4)) {

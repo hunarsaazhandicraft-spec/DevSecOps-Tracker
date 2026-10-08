@@ -259,6 +259,13 @@ object Curriculum {
                 limit(1)
             }.decodeList<DocBody>().firstOrNull()
 
+    suspend fun hoursRows(): List<HoursRow> =
+        Supa.client.from("daily_logs")
+            .select(Columns.list("log_date", "planned_hours", "actual_hours")) {
+                order("log_date", Order.DESCENDING)
+                limit(21)
+            }.decodeList<HoursRow>()
+
     suspend fun latestLog(): LogHead? =
         Supa.client.from("daily_logs")
             .select(Columns.list("study_day", "log_date", "status", "chapter_topic", "next_action", "module_id")) {

@@ -89,4 +89,28 @@ class DueRulesTest {
         )
         assertEquals(2L, DueRules.latestReviewByCard(reviews).getValue(1L).id)
     }
+
+    @Test
+    fun reviewCap_limitsQueueAndShrinksAsReviewsAreDone() {
+        // 20 old reviewed cards, all overdue by different amounts.
+        val cards = (1L..20L).map { card(it) }
+        val reviews = (1L..20L).map { review(it, it, "2026-09-01T08:00:00+00:00", "2026-09-%02d".format(it.toInt() + 5)) }
+        val ids = DueRules.dueCardIds(cards, reviews, studied, today)
+        assertEquals(DueRules.MAX_REVIEWS_PER_DAY, ids.size)
+        // most overdue (earliest next_review_date) first
+        assertEquals(1L, ids.first())
+        // 4 reviews done today use up 4 of today's 15
+        val doneToday = reviews + (101L..104L).map { review(it, it, "2026-09-29T08:00:00+00:00", "2026-10-30") }
+        assertEquals(4, DueRules.reviewsDoneOn(doneToday, today))
+        assertEquals(11, DueRules.reviewBudget(doneToday, today))
+        assertEquals(11, DueRules.dueCardIds(cards, doneToday, studied, today).size)
+    }
+
+    @Test
+    fun overdueCount_isUncappedAndStrictlyBeforeToday() {
+        val cards = (1L..40L).map { card(it, due = "2026-09-01") } + card(99, due = "2026-09-29")
+        assertEquals(40, DueRules.overdueCount(cards, emptyList(), studied, today))
+        assertTrue(DueRules.isDebt(31))
+        assertTrue(!DueRules.isDebt(30))
+    }
 }

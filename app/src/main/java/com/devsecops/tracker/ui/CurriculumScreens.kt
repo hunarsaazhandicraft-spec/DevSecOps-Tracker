@@ -129,6 +129,7 @@ fun PathScreen(onOpenChat: (Int) -> Unit) {
                         ThinBar(if (totalH > 0) (doneH / totalH).toFloat() else 0f)
                     }
                 }
+                item { StalePlanNote(Modifier.padding(bottom = Sp.m)) }
                 if (current != null) {
                     item {
                         GlowCard(

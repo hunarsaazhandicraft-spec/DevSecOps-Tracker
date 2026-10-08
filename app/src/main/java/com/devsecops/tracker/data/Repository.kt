@@ -188,7 +188,11 @@ object Repository {
     // a study session or a mastery record on it. Without that rule the whole
     // seeded question bank would come due on day one.
 
-    suspend fun loadDueCards(): List<DueCard> = coroutineScope {
+    data class ReviseLoad(val queue: List<DueCard>, val overdue: Int)
+
+    suspend fun loadDueCards(): List<DueCard> = loadRevise().queue
+
+    suspend fun loadRevise(): ReviseLoad = coroutineScope {
         val todayStr = today()
 
         val cardsJob = async { fetchCards() }
@@ -198,14 +202,18 @@ object Repository {
         val topicsJob = async { listTopics() }
         val logTopicsJob = async { fetchLogTopics() }
 
-        assembleDueCards(
-            cards = cardsJob.await(),
-            reviews = reviewsJob.await(),
-            studiedTopicIds = studiedTopicIds(
-                sessionsJob.await(), masteryJob.await(), logTopicsJob.await()
+        val cards = cardsJob.await()
+        val reviews = reviewsJob.await()
+        val studied = studiedTopicIds(sessionsJob.await(), masteryJob.await(), logTopicsJob.await())
+        ReviseLoad(
+            queue = assembleDueCards(
+                cards = cards,
+                reviews = reviews,
+                studiedTopicIds = studied,
+                topics = topicsJob.await(),
+                todayStr = todayStr
             ),
-            topics = topicsJob.await(),
-            todayStr = todayStr
+            overdue = DueRules.overdueCount(cards, reviews, studied, LocalDate.parse(todayStr))
         )
     }
 
@@ -272,7 +280,7 @@ object Repository {
         val fresh = due.filter { it.lastReview == null }
             .sortedBy { it.card.due_date ?: "" }
             .take(newAllowed)
-        return reviewed + fresh
+        return (reviewed + fresh).take(DueRules.reviewBudget(reviews, LocalDate.parse(todayStr)))
     }
 
     // Simplified SM-2. The previous interval is recovered from the last

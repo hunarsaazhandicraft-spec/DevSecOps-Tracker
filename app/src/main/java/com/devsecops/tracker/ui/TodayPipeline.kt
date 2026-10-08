@@ -32,6 +32,7 @@ import com.devsecops.tracker.data.ChatState
 import com.devsecops.tracker.data.Curriculum
 import com.devsecops.tracker.data.CurriculumBlocker
 import com.devsecops.tracker.data.Fetch
+import com.devsecops.tracker.data.parseNextChat
 import com.devsecops.tracker.data.FeedEvent
 import com.devsecops.tracker.data.HomeDashboard
 import com.devsecops.tracker.data.LogHead
@@ -236,8 +237,13 @@ fun TutorLogCard(onOpenPath: () -> Unit, modifier: Modifier = Modifier) {
         } else {
             TermLine("day ${l.study_day} · ${l.status ?: "-"}", maxLines = 1)
             l.chapter_topic?.let { TermLine(it) }
-            l.next_action?.let { TermLine("next: $it", maxLines = 3) }
-            val cmd = "DAY ${nextDayNumber(l.status, l.study_day)}"
+            val nc = parseNextChat(l.next_action)
+            if (nc != null) {
+                TermLine("agla chat: ${nc.name}", maxLines = 2)
+                if (nc.rest.isNotBlank()) TermLine(nc.rest, maxLines = 3)
+                nc.carry.forEach { TermLine("carry: $it", maxLines = 2) }
+            } else l.next_action?.let { TermLine("next: $it", maxLines = 3) }
+            val cmd = nc?.start ?: "DAY ${nextDayNumber(l.status, l.study_day)}"
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { clipboard.setText(AnnotatedString(cmd)); copied = true }, shape = RoundedCornerShape(10.dp)) {

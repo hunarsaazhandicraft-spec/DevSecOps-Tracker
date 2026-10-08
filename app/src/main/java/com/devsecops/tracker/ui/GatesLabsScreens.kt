@@ -154,6 +154,7 @@ private fun LabsList(d: GatesLabsData) {
                 )
             }
         }
+        item { LabPreflightCard() }
         val latest = latestLabRuns(d.runs)
         item {
             val done = d.labs.count { latest[it.id]?.status == "done" }
