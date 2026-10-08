@@ -47,7 +47,7 @@ private data class NotesLists(
 )
 
 @Composable
-fun NotesScreen(onBack: () -> Unit, onOpenNote: (Long) -> Unit) {
+fun NotesScreen(onBack: () -> Unit, onOpenNote: (Long) -> Unit, showBackButton: Boolean = true) {
     val ctx = LocalContext.current
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
@@ -82,7 +82,7 @@ fun NotesScreen(onBack: () -> Unit, onOpenNote: (Long) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        AppTitleBar(title = "Notes", onBack = onBack,
+        AppTitleBar(title = "Notes", onBack = if (showBackButton) onBack else null,
             subtitle = data?.let { d -> "${d.notes.size} notes" + if (d.offline) " - offline copy" else "" })
         val d = data
         when {

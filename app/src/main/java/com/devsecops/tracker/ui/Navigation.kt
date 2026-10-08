@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LocalLibrary
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Quiz
@@ -80,6 +81,7 @@ private object Routes {
     const val FADING = "fading"
     const val PATH = "path"
     const val LIBRARY = "library"
+    const val MORE = "more"
     const val ATTENDANCE = "attendance"
     const val GATES = "gates"
     const val NOTES = "notes"
@@ -100,11 +102,10 @@ object DeepLink {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab(Routes.TODAY, "Today", Icons.Filled.Today),
-    Tab(Routes.PATH, "Path", Icons.Filled.Map),
+    Tab(Routes.TODAY, "Aaj", Icons.Filled.Today),
     Tab(Routes.REVISE, "Revise", Icons.Filled.Quiz),
-    Tab(Routes.LIBRARY, "Library", Icons.Filled.LocalLibrary),
-    Tab(Routes.PROGRESS, "Progress", Icons.Filled.Insights)
+    Tab(Routes.NOTES, "Notes", Icons.Filled.MenuBook),
+    Tab(Routes.MORE, "Aur", Icons.Filled.MoreHoriz)
 )
 
 private const val ANIM_MS = 260
@@ -274,7 +275,7 @@ fun TrackerNavHost() {
             composable(Routes.PROGRESS) {
                 ProgressScreen(
                     onBack = { navController.popBackStack() },
-                    showBackButton = false,
+                    showBackButton = true,
                     onOpen = { navController.navigate(it) }
                 )
             }
@@ -289,10 +290,14 @@ fun TrackerNavHost() {
                 )
             }
             composable(Routes.PATH) {
-                PathScreen(onOpenChat = { navController.navigate("chat/$it") })
+                FormFrame("Path", { navController.popBackStack() }) {
+                    PathScreen(onOpenChat = { navController.navigate("chat/$it") })
+                }
             }
             composable(Routes.LIBRARY) {
-                LibraryScreen(onOpenDoc = { navController.navigate("doc?path=" + android.net.Uri.encode(it)) })
+                FormFrame("Project docs", { navController.popBackStack() }) {
+                    LibraryScreen(onOpenDoc = { navController.navigate("doc?path=" + android.net.Uri.encode(it)) })
+                }
             }
             composable(
                 Routes.CHAT,
@@ -321,7 +326,10 @@ fun TrackerNavHost() {
             composable(Routes.GATES) { GatesLabsScreen { navController.popBackStack() } }
             composable(Routes.RESOURCES) { ResourcesScreen { navController.popBackStack() } }
             composable(Routes.NOTES) {
-                NotesScreen(onBack = { navController.popBackStack() }, onOpenNote = { navController.navigate("note/$it") })
+                NotesScreen(onBack = { goTab(Routes.TODAY) }, onOpenNote = { navController.navigate("note/$it") }, showBackButton = false)
+            }
+            composable(Routes.MORE) {
+                MoreScreen(onOpen = { navController.navigate(it) { launchSingleTop = true } })
             }
             composable(Routes.NOTE, arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
                 NoteDetailScreen(noteId = entry.arguments?.getLong("id") ?: 0L, onBack = { navController.popBackStack() })
