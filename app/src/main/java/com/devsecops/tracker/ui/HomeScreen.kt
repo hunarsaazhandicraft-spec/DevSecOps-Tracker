@@ -218,69 +218,10 @@ private fun HomeContent(
         // Attendance: start / break / end day
         item { AttendanceCard(onOpen = { onOpen("attendance") }, modifier = Modifier.appear(1)) }
 
-        // The day as a pipeline: warm-up, gap re-test, new session
-        item {
-            PipelineCard(
-                d, onStartRevision = onStartRevision, onViewWeakSpots = onViewWeakSpots,
-                onViewMastery = onViewMastery, modifier = Modifier.appear(1)
-            )
-        }
-
-        // Backlog rescue (draws only when needed)
-        item { BacklogRescueCard(onGo = onOpen, modifier = Modifier.appear(2), refreshKey = refreshKey) }
-
-        // Three numbers
-        item {
-            Row(Modifier.fillMaxWidth().appear(2), horizontalArrangement = Arrangement.spacedBy(Sp.s)) {
-                MiniTile(
-                    "gaps", d.overdueWeakSpotCount.toString(),
-                    if (d.overdueWeakSpotCount > 0) cs.error else cs.onSurface,
-                    Modifier.weight(1f), onClick = onViewWeakSpots
-                )
-                MiniTile(
-                    "cards due", d.dueRevisionCount.toString(),
-                    if (d.dueRevisionCount > 0) cs.tertiary else cs.onSurface,
-                    Modifier.weight(1f), onClick = onStartRevision
-                )
-                MiniTile("streak", "${d.currentStreak}d", cs.onSurface, Modifier.weight(1f), onClick = onViewProgress)
-            }
-        }
-
-        item { SessionStrip(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(3)) }
+        // Today's note revision (opens the Revise tab)
+        item { TodayRevisionCard(onOpen = onStartRevision, refreshKey = refreshKey, modifier = Modifier.appear(2)) }
 
         item { TutorLogCard(onOpenPath = { onOpen("path") }, modifier = Modifier.appear(3)) }
-
-        item { PaceCard(modifier = Modifier.appear(3), refreshKey = refreshKey) }
-
-        // Smart pick (time and energy), collapsed by default
-        item {
-            GlowCard(onClick = { smartOpen = !smartOpen }, padding = 14.dp, modifier = Modifier.appear(4)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Kya karu abhi?", style = MaterialTheme.typography.titleSmall)
-                        Text("30 / 60 / 90 min aur energy ke hisaab se suggestion", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-                    }
-                    Icon(
-                        Icons.Filled.ExpandMore,
-                        contentDescription = if (smartOpen) "Collapse" else "Expand",
-                        tint = cs.onSurfaceVariant,
-                        modifier = Modifier.graphicsLayer { rotationZ = chevron }
-                    )
-                }
-            }
-        }
-        item {
-            AnimatedVisibility(visible = smartOpen) {
-                ContinueCard(onGo = onOpen, refreshKey = refreshKey)
-            }
-        }
-
-        item {
-            GlowCard(onClick = { onOpen("notes") }, padding = 14.dp, modifier = Modifier.appear(5)) {
-                Text("Notes", style = MaterialTheme.typography.titleSmall)
-                Text("Topic-wise deep notes aur apne words", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
-            }
-        }
 
         // Quick actions
         item {
@@ -320,4 +261,33 @@ private fun todayLine(): String {
     val d = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val dow = d.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
     return "$dow ${friendlyDate(d.toString())}"
+}
+
+@Composable
+private fun TodayRevisionCard(onOpen: () -> Unit, refreshKey: Int, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    var counts by remember { mutableStateOf<Pair<Int, Int>?>(null) } // due now, done today
+    LaunchedEffect(refreshKey) {
+        val notes = com.devsecops.tracker.data.Fetch.safeCall { com.devsecops.tracker.data.Notes.list() }.getOrNull()
+        val done = com.devsecops.tracker.data.Fetch.safeCall { com.devsecops.tracker.data.NoteRevisions.list() }.getOrNull() ?: emptyList()
+        if (notes != null) {
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val doneToday = done.count { com.devsecops.tracker.data.localDateOf(it.done_at) == today }
+            counts = com.devsecops.tracker.data.dueNotes(notes, done, today, doneToday).size to doneToday
+        }
+    }
+    GlowCard(onClick = onOpen, padding = 14.dp, modifier = modifier) {
+        val c = counts
+        Text("Aaj ka revision", style = MaterialTheme.typography.titleSmall)
+        Text(
+            when {
+                c == null -> "Dekh raha hoon..."
+                c.first > 0 -> "${c.first} note revise karne hain \u00B7 kal ke notes + unke sawal"
+                c.second > 0 -> "Aaj ka revision ho gaya."
+                else -> "Aaj koi note due nahi."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if ((c?.first ?: 0) > 0) cs.tertiary else cs.onSurfaceVariant
+        )
+    }
 }

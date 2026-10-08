@@ -27,7 +27,8 @@ data class NoteMeta(
     val title: String,
     val status: String = "draft",
     val source: String = "tutor-chat",
-    val updated_at: String? = null
+    val updated_at: String? = null,
+    val created_at: String? = null
 )
 
 @Serializable
@@ -49,7 +50,7 @@ data class NoteFull(
 object Notes {
     private const val MAX_CACHED = 30
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private val META_COLS = Columns.list("id", "module_id", "topic_id", "part", "title", "status", "source", "updated_at")
+    private val META_COLS = Columns.list("id", "module_id", "topic_id", "part", "title", "status", "source", "updated_at", "created_at")
 
     // ---- network ----------------------------------------------------------
 

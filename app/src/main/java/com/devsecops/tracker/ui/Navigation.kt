@@ -259,10 +259,29 @@ fun TrackerNavHost() {
                 )
             }
             composable(Routes.REVISE) {
+                ReviseHome(
+                    onStartNote = { id, rung -> navController.navigate("revise_note/$id/$rung") },
+                    onOpenCards = { navController.navigate("cards") }
+                )
+            }
+            composable(
+                "revise_note/{id}/{rung}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("rung") { type = NavType.IntType }
+                )
+            ) { entry ->
+                NoteRevisionScreen(
+                    noteId = entry.arguments?.getLong("id") ?: 0L,
+                    rung = entry.arguments?.getInt("rung") ?: 1,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable("cards") {
                 QuizScreen(
                     onBack = { navController.popBackStack() },
                     onAddCard = { navController.navigate(Routes.ADD_CARD) },
-                    showBackButton = false
+                    showBackButton = true
                 )
             }
             composable(Routes.MASTERY) {
